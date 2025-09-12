@@ -7,4 +7,4 @@ This document provides detailed instructions for installing `rig` on various pla
 The simplest and recommended way to install `rig` is using the `go install` command, which works on any platform with the Go toolchain installed.
 
 ```bash
-go install github.com/your-org/rig@latest
+go install github.com/divijg19/rig@latest
