@@ -6,9 +6,9 @@
 
 **rig = cargo’s clarity + bun’s DX + Go’s no-nonsense tooling**
 
-[![build status](https://img.shields.io/github/actions/workflow/status/your-org/rig/build.yml?branch=main)](https://github.com/your-org/rig/actions)
-[![latest release](https://img.shields.io/github/v/release/your-org/rig)](https://github.com/your-org/rig/releases)
-[![license](https://img.shields.io/github/license/your-org/rig)](./LICENSE)
+[![build status](https://img.shields.io/github/actions/workflow/status/divijg19/rig/build.yml?branch=main)](https://github.com/your-org/rig/actions)
+[![latest release](https://img.shields.io/github/v/release/divijg19/rig)](https://github.com/your-org/rig/releases)
+[![license](https://img.shields.io/github/license/divijg19/rig)](./LICENSE)
 
 `rig` is an opinionated, all-in-one project management tool and task runner for Go. It enhances the natural Go toolchain with a single, declarative manifest, solving common pain points like toolchain management and script cross-compatibility without replacing the tools you already love.
 
@@ -23,7 +23,7 @@
 
 1.  **Install `rig`:**
     ```bash
-    go install github.com/your-org/rig@latest
+    go install github.com/divijg19/rig@latest
     ```
 
 2.  **Initialize your project:**
