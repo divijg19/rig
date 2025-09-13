@@ -6,9 +6,9 @@ Our development is planned in phases, with each phase delivering a significant s
 
 ### Phase 1: v0.1 - The Foundation (The `Makefile` Killer)
 **Goal:** Provide an immediate, valuable replacement for `Makefile` with a native, cross-platform solution.
-- [ ] Define the initial `rig.toml` specification (`[project]`, `[tasks]`).
-- [ ] Implement the `rig run <task>` command.
-- [ ] Implement the `rig init` command for bootstrapping.
+- [x] Define the initial `rig.toml` specification (`[project]`, `[tasks]`).
+- [x] Implement the `rig run <task>` command.
+- [x] Implement the `rig init` command for bootstrapping.
 - [ ] Basic support for build profiles via `[profile]`.
 
 ### Phase 2: v0.2 - The Differentiator (Solving Toolchain Hell)

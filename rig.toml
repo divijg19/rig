@@ -1,1 +1,16 @@
-# A sample config file for our own development
+# rig.toml for this repository (developer defaults)
+
+[project]
+name = "rig"
+version = "0.1.0"
+
+[tasks]
+list = "rig run --list"
+help = "rig --help"
+build = "go build ./..."
+cli = "go build -o ./.bin/rig ./cmd/rig"
+test = "go test ./..."
+vet = "go vet ./..."
+fmt = "gofmt -s -w ."
+run-help = "./.bin/rig --help"
+run-list = "./.bin/rig run --list"
