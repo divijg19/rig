@@ -1,0 +1,21 @@
+# Binaries
+.bin/
+*.exe
+*.dll
+
+# Build artifacts
+/dist/
+/build/
+
+# IDE/editor
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+vendor/
+AGENT.md
