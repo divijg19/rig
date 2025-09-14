@@ -3,7 +3,6 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,16 +28,13 @@ var buildCmd = &cobra.Command{
 	Use:   "build",
 	Short: "Build the project using optional profiles from rig.toml",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conf, path, err := cfg.Load("")
+		conf, path, err := loadConfigOrFail()
 		if err != nil {
-			if errors.Is(err, cfg.ErrConfigNotFound) {
-				return fmt.Errorf("no rig.toml found. run 'rig init' first")
-			}
 			return err
 		}
 
-		// Start composing go build command
-		var parts []string
+		// Start composing go build command (pre-size for typical case)
+		parts := make([]string, 0, 8) // typical: go build -o output -ldflags flags .
 		parts = append(parts, "go", "build")
 
 		// Apply profile if specified and exists
@@ -86,9 +82,10 @@ var buildCmd = &cobra.Command{
 
 		cmdline := strings.Join(parts, " ")
 
-		// Prepare env from profile
+		// Prepare env from profile (pre-size for efficiency)
 		var env []string
 		if prof.Env != nil {
+			env = make([]string, 0, len(prof.Env))
 			for k, v := range prof.Env {
 				env = append(env, fmt.Sprintf("%s=%s", k, v))
 			}
@@ -113,14 +110,6 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildDir, "dir", "C", "", "working directory for build")
 	buildCmd.Flags().BoolVar(&buildDryRun, "dry-run", false, "print the build command without executing")
 	rootCmd.AddCommand(buildCmd)
-}
-
-// firstNonEmpty returns a if a != "", otherwise b.
-func firstNonEmpty(a, b string) string {
-	if strings.TrimSpace(a) != "" {
-		return a
-	}
-	return strings.TrimSpace(b)
 }
 
 // shellQuote provides minimal quoting for arguments that may contain spaces.

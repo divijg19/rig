@@ -1,0 +1,20 @@
+[project]
+name = "init-dx-monorepo-ci"
+version = "0.1.0"
+authors = []
+license = "MIT"
+
+[profile.dev]
+flags = ["-race"]
+tags = []
+gcflags = ""
+
+[profile.release]
+ldflags = "-s -w"
+tags = []
+gcflags = ""
+output = "bin/app"
+
+# include = ["rig.tasks.toml", "rig.tools.toml"]
+
+include = ["rig.tasks.toml", "rig.tools.toml"]

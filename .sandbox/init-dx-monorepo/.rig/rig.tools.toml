@@ -1,0 +1,3 @@
+[tools]
+golangci-lint = "1.62.0"
+github.com/cespare/reflex = "latest"
