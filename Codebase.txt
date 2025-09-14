@@ -2,17 +2,17 @@
 .gitignore
 CODE_OF_CONDUCT.md
 CONTRIBUTING.md
+Codebase.txt
 INSTALL.md
 LICENSE
 PHILOSOPHY.md
 README.md
 ROADMAP.md
 cmd/rig/README.md
-cmd/rig/cmd/init.go
-cmd/rig/cmd/root.go
 cmd/rig/main.go
 go.mod
 go.sum
+internal/cli/build.go
 internal/cli/init.go
 internal/cli/root.go
 internal/cli/run.go
@@ -20,5 +20,6 @@ internal/config/README.md
 internal/config/config.go
 internal/config/loader.go
 internal/rig/README.md
+internal/rig/executor.go
 internal/tui/README.md
 rig.toml

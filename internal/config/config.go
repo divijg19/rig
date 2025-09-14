@@ -20,6 +20,23 @@ type Project struct {
 type Config struct {
 	Project Project           `mapstructure:"project"`
 	Tasks   map[string]string `mapstructure:"tasks"`
+	// Profile-specific build settings (e.g., [profile.release])
+	Profiles map[string]BuildProfile `mapstructure:"profile"`
+}
+
+// BuildProfile captures optional build-time configuration that can be
+// selected via `rig build --profile <name>`.
+type BuildProfile struct {
+	// Go build flags
+	Ldflags string   `mapstructure:"ldflags"`
+	Gcflags string   `mapstructure:"gcflags"`
+	Tags    []string `mapstructure:"tags"`
+
+	// Optional environment to apply during build (KEY=VALUE)
+	Env map[string]string `mapstructure:"env"`
+
+	// Optional default output path/name (overridden by --output)
+	Output string `mapstructure:"output"`
 }
 
 // DefaultConfigTemplate is the content that will be written to a new rig.toml file.
@@ -39,6 +56,14 @@ authors = []
 test = "go test -v -race ./..."
 lint = "golangci-lint run"
 run = "go run ."
+
+# Optional build profiles for \"rig build --profile <name>\"
+[profile.release]
+# Strip debug, smaller binary
+ldflags = "-s -w"
+tags = []
+gcflags = ""
+output = "bin/app"
 `
 
 // GetDefaultProjectName infers a project name from the current directory.

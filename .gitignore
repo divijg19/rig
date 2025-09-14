@@ -18,4 +18,5 @@ Thumbs.db
 
 # Go
 vendor/
+Codebase.txt
 AGENT.md

@@ -5,13 +5,11 @@ package cli
 import (
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
-	"runtime"
 	"sort"
 	"strings"
 
 	cfg "github.com/divijg19/rig/internal/config"
+	core "github.com/divijg19/rig/internal/rig"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +17,7 @@ var (
 	runWorkingDir string
 	runList       bool
 	runDryRun     bool
+	runEnv        []string
 )
 
 // runCmd represents the `rig run <task>` command.
@@ -74,30 +73,12 @@ var runCmd = &cobra.Command{
 		}
 
 		if runDryRun {
-			fmt.Printf("� Dry run: would execute -> %s\n", task)
+			fmt.Printf("🧪 Dry run: would execute -> %s\n", task)
 			return nil
 		}
 
-		fmt.Printf("�🚀 Running task %q (from %s)\n", taskName, path)
-
-		// On Windows, use `cmd /c`, on Unix use `sh -c`.
-		var execCmd *exec.Cmd
-		if runtime.GOOS == "windows" {
-			execCmd = exec.Command("cmd", "/c", task)
-		} else {
-			execCmd = exec.Command("sh", "-c", task)
-		}
-
-		if runWorkingDir != "" {
-			execCmd.Dir = runWorkingDir
-		}
-		// Stream output directly.
-		execCmd.Stdout = os.Stdout
-		execCmd.Stderr = os.Stderr
-		execCmd.Stdin = os.Stdin
-
-		if err := execCmd.Run(); err != nil {
-			// Preserve exit code by returning error to Cobra.
+		fmt.Printf("🚀 Running task %q (from %s)\n", taskName, path)
+		if err := core.ExecuteShell(task, core.ExecOptions{Dir: runWorkingDir, Env: runEnv}); err != nil {
 			return err
 		}
 		fmt.Println("✅ Done")
@@ -109,5 +90,6 @@ func init() {
 	runCmd.Flags().StringVarP(&runWorkingDir, "dir", "C", "", "working directory to run the task in")
 	runCmd.Flags().BoolVar(&runList, "list", false, "list tasks defined in rig.toml")
 	runCmd.Flags().BoolVar(&runDryRun, "dry-run", false, "print the command without executing")
+	runCmd.Flags().StringArrayVar(&runEnv, "env", nil, "environment variables (KEY=VALUE), can be repeated")
 	rootCmd.AddCommand(runCmd)
 }
