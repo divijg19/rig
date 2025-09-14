@@ -1,0 +1,32 @@
+[project]
+name = "test-developer"
+version = "0.1.0"
+authors = []
+license = "MIT"
+
+[profile.dev]
+flags = ["-race"]
+tags = []
+gcflags = ""
+
+[profile.release]
+ldflags = "-s -w"
+tags = []
+gcflags = ""
+output = "bin/app"
+
+
+[tasks]
+list = "rig run --list"
+help = "rig --help"
+build = "go build ./..."
+test = "go test ./..."
+vet = "go vet ./..."
+fmt = "gofmt -s -w ."
+run = "go run ."
+lint = "golangci-lint run ./..."
+dev = "reflex -r \"\\.go$\" -- go run ."
+
+[tools]
+golangci-lint = "1.62.0"
+github.com/cespare/reflex = "latest"

@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	cfg "github.com/divijg19/rig/internal/config"
 	core "github.com/divijg19/rig/internal/rig"
 	"github.com/spf13/cobra"
 )
@@ -34,11 +33,8 @@ var runCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conf, path, err := cfg.Load("")
+		conf, path, err := loadConfigOrFail()
 		if err != nil {
-			if errors.Is(err, cfg.ErrConfigNotFound) {
-				return fmt.Errorf("no rig.toml found. run 'rig init' first")
-			}
 			return err
 		}
 
@@ -69,7 +65,10 @@ var runCmd = &cobra.Command{
 
 		// If extra args are provided, append them to the command string.
 		if len(extraArgs) > 0 {
-			task = task + " " + strings.Join(extraArgs, " ")
+			var parts []string
+			parts = append(parts, task)
+			parts = append(parts, extraArgs...)
+			task = strings.Join(parts, " ")
 		}
 
 		if runDryRun {

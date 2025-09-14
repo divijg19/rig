@@ -1,0 +1,11 @@
+[tasks]
+list = "rig run --list"
+help = "rig --help"
+build = "go build ./..."
+test = "go test ./..."
+vet = "go vet ./..."
+fmt = "gofmt -s -w ."
+run = "go run ."
+lint = "golangci-lint run ./..."
+dev = "reflex -r \"\\.go$\" -- go run ."
+ci = "go vet ./... && go test ./..."
