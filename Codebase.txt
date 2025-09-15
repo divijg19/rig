@@ -21,9 +21,11 @@ cmd/rig/main.go
 go.mod
 go.sum
 internal/cli/build.go
+internal/cli/cli_integration_test.go
 internal/cli/doctor.go
 internal/cli/init.go
 internal/cli/root.go
+internal/cli/root_test.go
 internal/cli/run.go
 internal/cli/setup.go
 internal/config/README.md
@@ -34,5 +36,7 @@ internal/rig/README.md
 internal/rig/build.go
 internal/rig/build_test.go
 internal/rig/executor.go
+internal/rig/tooling.go
+internal/rig/tooling_test.go
 internal/tui/README.md
 rig.toml

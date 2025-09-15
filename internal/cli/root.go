@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	cfg "github.com/divijg19/rig/internal/config"
@@ -17,9 +18,15 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "rig",
-	Short: "rig is an all-in-one project manager and task runner for Go.",
-	Long: `rig enhances the Go toolchain with a single, declarative manifest,
-solving common pain points like toolchain management and script cross-compatibility.`,
+	Short: "All-in-one project manager and task runner for Go",
+	Long: `rig enhances the Go toolchain with a single, declarative manifest (rig.toml).
+
+Features:
+	• Unified Manifest: [project], [tasks], [tools], [profile.*], and includes
+	• Reproducible Tooling: pins and installs tools into .rig/bin per project
+	• Friendly DX: emoji output, clear errors, and cross-platform commands
+
+Tip: run 'rig init' to create a rig.toml in the current directory.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -81,10 +88,61 @@ func execCommand(name string, args ...string) (string, error) {
 	return strings.TrimSpace(out.String()), nil
 }
 
-// execCommandSilent runs a command without capturing output, for installation tasks.
-// Returns only the error status for success/failure determination.
-func execCommandSilent(name string, args ...string) error {
+// localBinDirFor returns the project-local tool bin directory based on rig.toml path.
+func localBinDirFor(configPath string) string {
+	base := filepath.Dir(configPath)
+	return filepath.Join(base, ".rig", "bin")
+}
+
+// envWithLocalBin returns env entries that ensure the local .rig/bin is preferred on PATH.
+// If includeGOBIN is true, also sets GOBIN to .rig/bin so `go install` writes there.
+// Any extra entries provided are preserved and PATH/GOBIN are appended last to win on duplicates.
+func envWithLocalBin(configPath string, extra []string, includeGOBIN bool) []string {
+	localBin := localBinDirFor(configPath)
+	// Determine base PATH from extra env if present; otherwise use process PATH
+	basePath := os.Getenv("PATH")
+	if len(extra) > 0 {
+		for _, kv := range extra {
+			if strings.HasPrefix(kv, "PATH=") {
+				basePath = strings.TrimPrefix(kv, "PATH=")
+				break
+			}
+		}
+	}
+	newPath := localBin + string(os.PathListSeparator) + basePath
+	env := make([]string, 0, len(extra)+2)
+	if len(extra) > 0 {
+		env = append(env, extra...)
+	}
+	// Append GOBIN first or PATH first? Order doesn't matter between them, but both should be last overall.
+	if includeGOBIN {
+		env = append(env, "GOBIN="+localBin)
+	}
+	env = append(env, "PATH="+newPath)
+	return env
+}
+
+// execCommandEnv runs a command with additional env entries.
+func execCommandEnv(name string, args []string, env []string) (string, error) {
 	cmd := exec.Command(name, args...)
+	if len(env) > 0 {
+		cmd.Env = append(os.Environ(), env...)
+	}
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out.String()), nil
+}
+
+// execCommandSilentEnv runs a command with env and no output capture.
+func execCommandSilentEnv(name string, args []string, env []string) error {
+	cmd := exec.Command(name, args...)
+	if len(env) > 0 {
+		cmd.Env = append(os.Environ(), env...)
+	}
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	return cmd.Run()

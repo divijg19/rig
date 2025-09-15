@@ -23,6 +23,14 @@ var (
 var runCmd = &cobra.Command{
 	Use:   "run <task> [-- extra args]",
 	Short: "Run a named task from rig.toml",
+	Long:  "Run a task from the [tasks] section of rig.toml. Use --list to discover tasks.",
+	Example: `
+	rig run --list
+	rig run test
+	rig run build -- -v
+	rig run build -C ./cmd/rig
+	rig run lint --dry-run
+`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if runList {
 			return nil // allow zero args when listing
@@ -71,13 +79,16 @@ var runCmd = &cobra.Command{
 			task = strings.Join(parts, " ")
 		}
 
+		// Ensure local tool bin is preferred on PATH
+		env := envWithLocalBin(path, runEnv, false)
+
 		if runDryRun {
 			fmt.Printf("🧪 Dry run: would execute -> %s\n", task)
 			return nil
 		}
 
 		fmt.Printf("🚀 Running task %q (from %s)\n", taskName, path)
-		if err := core.ExecuteShell(task, core.ExecOptions{Dir: runWorkingDir, Env: runEnv}); err != nil {
+		if err := core.ExecuteShell(task, core.ExecOptions{Dir: runWorkingDir, Env: env}); err != nil {
 			return err
 		}
 		fmt.Println("✅ Done")
