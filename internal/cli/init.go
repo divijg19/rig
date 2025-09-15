@@ -38,10 +38,16 @@ var (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new rig.toml file",
-	Long: `Creates a rig.toml file with default or interactive choices.
+	Long: `Creates a rig.toml manifest with sensible defaults or interactive prompts.
 
-This file serves as the central manifest for your project, allowing you to
-define tasks, manage tools, and configure your build process.`,
+This file is the single source of truth for your project: define tasks, pin tools, and configure build profiles.
+Supports monorepos via .rig/ includes.`,
+	Example: `
+  rig init            # defaults
+  rig init -y         # non-interactive
+  rig init -C ./app   # write manifest in subfolder
+  rig init --developer --monorepo --dev-watcher reflex
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Resolve target directory
 		targetDirectory := initDirectory

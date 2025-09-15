@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	cfg "github.com/divijg19/rig/internal/config"
 	core "github.com/divijg19/rig/internal/rig"
@@ -27,15 +26,18 @@ var (
 var buildCmd = &cobra.Command{
 	Use:   "build",
 	Short: "Build the project using optional profiles from rig.toml",
+	Long:  "Compose and run 'go build' using flags from rig.toml profiles and CLI overrides.",
+	Example: `
+	rig build --dry-run
+	rig build --profile release
+	rig build --tags netgo --ldflags "-s -w" -o bin/app
+	rig build -C ./cmd/rig
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conf, path, err := loadConfigOrFail()
 		if err != nil {
 			return err
 		}
-
-		// Start composing go build command (pre-size for typical case)
-		parts := make([]string, 0, 8) // typical: go build -o output -ldflags flags .
-		parts = append(parts, "go", "build")
 
 		// Apply profile if specified and exists
 		var prof cfg.BuildProfile
@@ -50,46 +52,25 @@ var buildCmd = &cobra.Command{
 			prof = p
 		}
 
-		// Merge flags: CLI flags override profile
-		ldflags := firstNonEmpty(buildLdflags, prof.Ldflags)
-		gcflags := firstNonEmpty(buildGcflags, prof.Gcflags)
-		tags := buildTags
-		if len(tags) == 0 && len(prof.Tags) > 0 {
-			tags = prof.Tags
-		}
+		// Determine effective output and ensure output directory exists
 		out := firstNonEmpty(buildOutput, prof.Output)
 		if out != "" {
-			// Ensure output directory exists
 			if dir := filepath.Dir(out); dir != "." && dir != "" {
 				if err := os.MkdirAll(dir, 0o755); err != nil {
 					return fmt.Errorf("create output directory %s: %w", dir, err)
 				}
 			}
-			parts = append(parts, "-o", shellQuote(filepath.Clean(out)))
-		}
-		if ldflags != "" {
-			parts = append(parts, "-ldflags", shellQuote(ldflags))
-		}
-		if gcflags != "" {
-			parts = append(parts, "-gcflags", shellQuote(gcflags))
-		}
-		if len(tags) > 0 {
-			parts = append(parts, "-tags", shellQuote(strings.Join(tags, ",")))
 		}
 
-		// Package to build: default to current module
-		parts = append(parts, ".")
-
-		cmdline := strings.Join(parts, " ")
-
-		// Prepare env from profile (pre-size for efficiency)
-		var env []string
-		if prof.Env != nil {
-			env = make([]string, 0, len(prof.Env))
-			for k, v := range prof.Env {
-				env = append(env, fmt.Sprintf("%s=%s", k, v))
-			}
-		}
+		// Compose command via core package
+		cmdline, env := core.ComposeBuildCommand(prof, core.BuildOverrides{
+			Output:  out,
+			Tags:    buildTags,
+			Ldflags: buildLdflags,
+			Gcflags: buildGcflags,
+		})
+		// Ensure local .rig/bin is preferred on PATH
+		env = envWithLocalBin(path, env, false)
 
 		if buildDryRun {
 			fmt.Printf("🧪 Dry run: would execute -> %s\n", cmdline)
@@ -110,16 +91,4 @@ func init() {
 	buildCmd.Flags().StringVarP(&buildDir, "dir", "C", "", "working directory for build")
 	buildCmd.Flags().BoolVar(&buildDryRun, "dry-run", false, "print the build command without executing")
 	rootCmd.AddCommand(buildCmd)
-}
-
-// shellQuote provides minimal quoting for arguments that may contain spaces.
-// Since we pass a command string to a shell, we quote values. This is not a
-// full shell-escaping routine but is sufficient for common flags.
-func shellQuote(s string) string {
-	if s == "" {
-		return s
-	}
-	// Wrap in double quotes and escape any existing quotes
-	s = strings.ReplaceAll(s, "\"", "\\\"")
-	return "\"" + s + "\""
 }
