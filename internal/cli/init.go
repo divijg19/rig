@@ -68,19 +68,59 @@ Supports monorepos via .rig/ includes.`,
 			return errors.New("--developer and --minimal are mutually exclusive")
 		}
 
-		// Determine project metadata from flags or defaults
+		// Interactive mode with smart defaults
+		if !initYes {
+			fmt.Println("🚀 This will create a rig.toml file in the current directory.")
+			fmt.Println()
+		}
+
+		// Determine project metadata from flags, prompts, or smart defaults
 		projectName := initName
 		if projectName == "" {
-			// Prefer directory base name when -C used
+			// Smart default: directory base name
 			base := filepath.Base(targetDirectory)
 			if base == "." || base == string(os.PathSeparator) || base == "" {
 				projectName = config.GetDefaultProjectName()
 			} else {
 				projectName = strings.ToLower(base)
 			}
+			if !initYes {
+				projectName = askString(fmt.Sprintf("? project name: (%s)", projectName), projectName)
+			}
 		}
+
 		version := firstNonEmpty(initVersion, "0.1.0")
+		if !initYes && initVersion == "" {
+			version = askString(fmt.Sprintf("? version: (%s)", version), version)
+		}
+
 		license := firstNonEmpty(initLicense, "MIT")
+		if !initYes && initLicense == "" {
+			license = askString(fmt.Sprintf("? license: (%s)", license), license)
+		}
+
+		// Smart default: author from git config
+		var authors []string
+		if gitAuthor := getGitAuthor(); gitAuthor != "" && !initYes {
+			authorInput := askString(fmt.Sprintf("? author: (%s)", gitAuthor), gitAuthor)
+			if authorInput != "" {
+				authors = []string{authorInput}
+			}
+		}
+
+		// Smart default: Go version detection
+		goVersion := getGoVersion()
+		if !initYes && goVersion != "" {
+			add := askConfirm(fmt.Sprintf("? Go version detected: %s (add to tools?) (Y/n)", goVersion), true)
+			if !add {
+				// Respect user's choice to not include; set empty to skip later
+				goVersion = ""
+			}
+		}
+
+		if !initYes {
+			fmt.Println()
+		}
 
 		developerMode := initDeveloperMode
 		if !initYes && !initDeveloperMode && !initMinimal {
@@ -122,7 +162,7 @@ Supports monorepos via .rig/ includes.`,
 		}
 
 		// Generate configuration files
-		mainToml := buildMainConfig(projectName, version, license, profiles, monorepo)
+		mainToml := buildMainConfig(projectName, version, license, authors, profiles, monorepo)
 		var includes []string
 		var tasksToml, toolsToml string
 		if monorepo {
@@ -131,7 +171,7 @@ Supports monorepos via .rig/ includes.`,
 				includes = append(includes, "rig.tasks.toml")
 			}
 			if useTools {
-				toolsToml = buildToolsConfig(developerMode, devWatcher)
+				toolsToml = buildToolsConfig(developerMode, devWatcher, goVersion)
 				includes = append(includes, "rig.tools.toml")
 			}
 			if len(includes) > 0 {
@@ -143,7 +183,7 @@ Supports monorepos via .rig/ includes.`,
 				mainToml += "\n" + buildTasksConfig(developerMode, devWatcher, initCI)
 			}
 			if useTools {
-				mainToml += "\n" + buildToolsConfig(developerMode, devWatcher)
+				mainToml += "\n" + buildToolsConfig(developerMode, devWatcher, goVersion)
 			}
 		}
 
@@ -173,7 +213,11 @@ Supports monorepos via .rig/ includes.`,
 			}
 		}
 
-		fmt.Println("🚀 Created:")
+		if !initYes {
+			fmt.Println()
+		}
+		fmt.Printf("✅ rig.toml created successfully!\n")
+		fmt.Println("📋 Created:")
 		for _, p := range wrote {
 			fmt.Printf("  • %s\n", p)
 		}
@@ -205,6 +249,20 @@ func init() {
 }
 
 // Helper functions
+func askString(prompt, defaultValue string) string {
+	if initYes {
+		return defaultValue
+	}
+	fmt.Printf("%s ", prompt)
+	reader := bufio.NewReader(os.Stdin)
+	line, _ := reader.ReadString('\n')
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return defaultValue
+	}
+	return line
+}
+
 func askConfirm(prompt string, defaultValue bool) bool {
 	if initYes {
 		return defaultValue
@@ -217,6 +275,30 @@ func askConfirm(prompt string, defaultValue bool) bool {
 		return defaultValue
 	}
 	return strings.HasPrefix(line, "y")
+}
+
+func getGitAuthor() string {
+	// Try to get git user name and email
+	name, _ := execCommand("git", "config", "user.name")
+	email, _ := execCommand("git", "config", "user.email")
+	if name != "" && email != "" {
+		return fmt.Sprintf("%s <%s>", name, email)
+	}
+	return ""
+}
+
+func getGoVersion() string {
+	// Try to detect current Go version
+	output, err := execCommand("go", "version")
+	if err != nil {
+		return ""
+	}
+	// Parse "go version go1.21.5 ..." to extract "1.21.5"
+	parts := strings.Fields(output)
+	if len(parts) >= 3 && strings.HasPrefix(parts[2], "go") {
+		return strings.TrimPrefix(parts[2], "go")
+	}
+	return ""
 }
 
 func isValidOption(value string, validOptions ...string) bool {
@@ -236,9 +318,26 @@ func getRelativePath(absolutePath string) string {
 	return absolutePath
 }
 
-func buildMainConfig(name, version, license string, profiles []string, monorepo bool) string {
+func buildMainConfig(name, version, license string, authors []string, profiles []string, monorepo bool) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "[project]\nname = \"%s\"\nversion = \"%s\"\nauthors = []\nlicense = \"%s\"\n\n", name, version, license)
+	fmt.Fprintf(&b, "[project]\nname = \"%s\"\nversion = \"%s\"\n", name, version)
+
+	// Authors
+	if len(authors) > 0 {
+		b.WriteString("authors = [")
+		for i, author := range authors {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "\"%s\"", author)
+		}
+		b.WriteString("]\n")
+	} else {
+		b.WriteString("authors = []\n")
+	}
+
+	fmt.Fprintf(&b, "license = \"%s\"\n\n", license)
+
 	// Profiles
 	for _, p := range profiles {
 		switch p {
@@ -272,8 +371,8 @@ func buildTasksConfig(developerMode bool, watcher string, includeCI bool) string
 		builder.WriteString("lint = \"golangci-lint run ./...\"\n")
 		switch watcher {
 		case "reflex":
-			// Cross-platform reflex invocation without relying on sh -c
-			builder.WriteString("dev = \"reflex -r \\\"\\\\.go$\\\" -- go run .\"\n")
+			// Prefer argv-style for robust cross-platform execution
+			builder.WriteString("dev.argv = [\"reflex\", \"-r\", \\\"\\\\.go$\\\" , \"--\", \"go\", \"run\", \".\"]\n")
 		case "air":
 			builder.WriteString("dev = \"air\"\n")
 		}
@@ -285,9 +384,15 @@ func buildTasksConfig(developerMode bool, watcher string, includeCI bool) string
 	return builder.String()
 }
 
-func buildToolsConfig(developerMode bool, watcher string) string {
+func buildToolsConfig(developerMode bool, watcher string, goVersion string) string {
 	var builder strings.Builder
 	builder.WriteString("[tools]\n")
+
+	// Add Go version if detected
+	if goVersion != "" {
+		fmt.Fprintf(&builder, "go = \"%s\"\n", goVersion)
+	}
+
 	if developerMode {
 		builder.WriteString("golangci-lint = \"1.62.0\"\n")
 		switch watcher {

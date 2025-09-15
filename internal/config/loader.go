@@ -55,9 +55,13 @@ func Load(startDir string) (*Config, string, error) {
 	if err != nil {
 		return nil, "", fmt.Errorf("read config %s: %w", path, err)
 	}
-	var c Config
-	if err := toml.Unmarshal(data, &c); err != nil {
+	var raw rawConfig
+	if err := toml.Unmarshal(data, &raw); err != nil {
 		return nil, "", fmt.Errorf("unmarshal base config: %w", err)
+	}
+	c, err := toTyped(raw)
+	if err != nil {
+		return nil, "", fmt.Errorf("convert base config: %w", err)
 	}
 
 	// Resolve include paths relative to the base file (and support .rig/ fallbacks)
@@ -83,13 +87,17 @@ func Load(startDir string) (*Config, string, error) {
 		if err != nil {
 			return nil, "", fmt.Errorf("read include %s: %w", incPath, err)
 		}
-		var inc Config
-		if err := toml.Unmarshal(incData, &inc); err != nil {
+		var rawInc rawConfig
+		if err := toml.Unmarshal(incData, &rawInc); err != nil {
 			return nil, "", fmt.Errorf("unmarshal include %s: %w", incPath, err)
+		}
+		inc, err := toTyped(rawInc)
+		if err != nil {
+			return nil, "", fmt.Errorf("convert include %s: %w", incPath, err)
 		}
 		if inc.Tasks != nil {
 			if c.Tasks == nil {
-				c.Tasks = map[string]string{}
+				c.Tasks = TasksMap{}
 			}
 			for k, v := range inc.Tasks {
 				c.Tasks[k] = v
@@ -113,9 +121,40 @@ func Load(startDir string) (*Config, string, error) {
 		}
 	}
 	if c.Tasks == nil {
-		c.Tasks = map[string]string{}
+		c.Tasks = TasksMap{}
 	}
 	return &c, path, nil
+}
+
+// rawConfig mirrors Config but allows [tasks] values to be untyped for flexible decoding.
+type rawConfig struct {
+	Project  Project                 `toml:"project"`
+	Tasks    map[string]any          `toml:"tasks"`
+	Tools    map[string]string       `toml:"tools"`
+	Includes []string                `toml:"include"`
+	Profiles map[string]BuildProfile `toml:"profile"`
+}
+
+// toTyped converts rawConfig into the strongly-typed Config using Task.fromAny parsing.
+func toTyped(r rawConfig) (Config, error) {
+	c := Config{
+		Project:  r.Project,
+		Tools:    r.Tools,
+		Includes: r.Includes,
+		Profiles: r.Profiles,
+	}
+	if len(r.Tasks) > 0 {
+		tm := make(TasksMap, len(r.Tasks))
+		for name, raw := range r.Tasks {
+			var t Task
+			if err := t.fromAny(raw); err != nil {
+				return Config{}, fmt.Errorf("task %q: %w", name, err)
+			}
+			tm[name] = t
+		}
+		c.Tasks = tm
+	}
+	return c, nil
 }
 
 // parseIncludeList extracts a top-level include array as []string from TOML bytes.

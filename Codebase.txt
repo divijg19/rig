@@ -28,6 +28,11 @@ internal/cli/root.go
 internal/cli/root_test.go
 internal/cli/run.go
 internal/cli/setup.go
+internal/cli/shortcuts.go
+internal/cli/tools.go
+internal/cli/tools_util.go
+internal/cli/tools_util_test.go
+internal/cli/x.go
 internal/config/README.md
 internal/config/config.go
 internal/config/loader.go

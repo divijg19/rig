@@ -11,6 +11,13 @@ var ToolShortNameMap = map[string]string{
 	"mockery":       "github.com/vektra/mockery/v2",
 	"staticcheck":   "honnef.co/go/tools/cmd/staticcheck",
 	"revive":        "github.com/mgechev/revive",
+	"air":           "github.com/cosmtrek/air",
+	"reflex":        "github.com/cespare/reflex",
+	// Common extras
+	"dlv":       "github.com/go-delve/delve/cmd/dlv",
+	"gotestsum": "gotest.tools/gotestsum",
+	"gci":       "github.com/daixiang0/gci",
+	"gofumpt":   "mvdan.cc/gofumpt",
 }
 
 // ResolveModuleAndBin takes a tool identifier (short name or module path)

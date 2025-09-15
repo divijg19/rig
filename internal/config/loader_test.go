@@ -58,7 +58,7 @@ ldflags = "-s -w"
 	if path != filepath.Join(dir, "rig.toml") {
 		t.Fatalf("unexpected path: %s", path)
 	}
-	if c.Tasks["build"] == "" || c.Tasks["test"] == "" {
+	if c.Tasks["build"].Command == "" || c.Tasks["test"].Command == "" {
 		t.Fatalf("expected tasks from both files, got %+v", c.Tasks)
 	}
 	if c.Tools["golangci-lint"] == "" {
@@ -82,11 +82,15 @@ ldflags = "-s -w"
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
-	var inc Config
-	if err := toml.Unmarshal(data, &inc); err != nil {
+	var incRaw rawConfig
+	if err := toml.Unmarshal(data, &incRaw); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if inc.Tasks["test"] == "" {
+	inc, err := toTyped(incRaw)
+	if err != nil {
+		t.Fatalf("toTyped: %v", err)
+	}
+	if inc.Tasks["test"].Command == "" {
 		t.Fatalf("expected task from include, got %+v", inc.Tasks)
 	}
 	if inc.Profiles["release"].Ldflags != "-s -w" {
