@@ -12,31 +12,38 @@ import (
 // We use `mapstructure` tags for Viper to know how to unmarshal the TOML data.
 
 type Project struct {
-	Name    string   `mapstructure:"name"`
-	Version string   `mapstructure:"version"`
-	Authors []string `mapstructure:"authors"`
+	Name    string   `mapstructure:"name" toml:"name"`
+	Version string   `mapstructure:"version" toml:"version"`
+	Authors []string `mapstructure:"authors" toml:"authors"`
+	License string   `mapstructure:"license" toml:"license"`
 }
 
 type Config struct {
-	Project Project           `mapstructure:"project"`
-	Tasks   map[string]string `mapstructure:"tasks"`
+	Project Project           `mapstructure:"project" toml:"project"`
+	Tasks   map[string]string `mapstructure:"tasks" toml:"tasks"`
+	Tools   map[string]string `mapstructure:"tools" toml:"tools"`
+	// Include allows splitting configuration across files.
+	// Paths are resolved relative to the main rig.toml directory. For monorepos,
+	// paths under .rig/ are also attempted if not found alongside the main file.
+	Includes []string `mapstructure:"include" toml:"include"`
 	// Profile-specific build settings (e.g., [profile.release])
-	Profiles map[string]BuildProfile `mapstructure:"profile"`
+	Profiles map[string]BuildProfile `mapstructure:"profile" toml:"profile"`
 }
 
 // BuildProfile captures optional build-time configuration that can be
 // selected via `rig build --profile <name>`.
 type BuildProfile struct {
 	// Go build flags
-	Ldflags string   `mapstructure:"ldflags"`
-	Gcflags string   `mapstructure:"gcflags"`
-	Tags    []string `mapstructure:"tags"`
+	Ldflags string   `mapstructure:"ldflags" toml:"ldflags"`
+	Gcflags string   `mapstructure:"gcflags" toml:"gcflags"`
+	Tags    []string `mapstructure:"tags" toml:"tags"`
+	Flags   []string `mapstructure:"flags" toml:"flags"`
 
 	// Optional environment to apply during build (KEY=VALUE)
-	Env map[string]string `mapstructure:"env"`
+	Env map[string]string `mapstructure:"env" toml:"env"`
 
 	// Optional default output path/name (overridden by --output)
-	Output string `mapstructure:"output"`
+	Output string `mapstructure:"output" toml:"output"`
 }
 
 // DefaultConfigTemplate is the content that will be written to a new rig.toml file.
@@ -49,6 +56,7 @@ const DefaultConfigTemplate = `
 name = "%s"
 version = "0.1.0"
 authors = []
+license = "MIT"
 
 [tasks]
 # Define your cross-platform tasks here.
@@ -56,6 +64,13 @@ authors = []
 test = "go test -v -race ./..."
 lint = "golangci-lint run"
 run = "go run ."
+
+[tools]
+# Pin tool versions for reproducible CI/dev
+# go = "1.25.1"
+# golangci-lint = "1.62.0"
+
+# include = ["rig.tasks.toml", "rig.tools.toml"]
 
 # Optional build profiles for \"rig build --profile <name>\"
 [profile.release]
