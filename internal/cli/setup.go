@@ -3,10 +3,8 @@
 package cli
 
 import (
-	"bufio"
 	"fmt"
 	"os"
-	"strings"
 
 	core "github.com/divijg19/rig/internal/rig"
 	"github.com/spf13/cobra"
@@ -29,47 +27,12 @@ var setupCmd = &cobra.Command{
 			return err
 		}
 		// Optionally read extra tools from a file (like pip requirements.txt)
-		extraTools := map[string]string{}
-		for _, arg := range args {
-			if strings.HasSuffix(arg, ".txt") {
-				f, err := os.Open(arg)
-				if err != nil {
-					return fmt.Errorf("read tools file %s: %w", arg, err)
-				}
-				defer f.Close()
-				scanner := bufio.NewScanner(f)
-				for scanner.Scan() {
-					line := strings.TrimSpace(scanner.Text())
-					if line == "" || strings.HasPrefix(line, "#") {
-						continue
-					}
-					// Format: name = version or module@version
-					if i := strings.Index(line, "="); i > 0 {
-						name := strings.TrimSpace(line[:i])
-						ver := strings.TrimSpace(line[i+1:])
-						extraTools[name] = ver
-					} else if i := strings.Index(line, "@"); i > 0 {
-						name := strings.TrimSpace(line[:i])
-						ver := strings.TrimSpace(line[i+1:])
-						extraTools[name] = ver
-					} else {
-						// If just a name, default to latest
-						extraTools[line] = "latest"
-					}
-				}
-				if err := scanner.Err(); err != nil {
-					return fmt.Errorf("scan tools file %s: %w", arg, err)
-				}
-			}
+		extraTools, err := parseToolsFiles(args)
+		if err != nil {
+			return err
 		}
 		// Merge conf.Tools and extraTools
-		tools := map[string]string{}
-		for k, v := range conf.Tools {
-			tools[k] = v
-		}
-		for k, v := range extraTools {
-			tools[k] = v
-		}
+		tools := mergeTools(conf.Tools, extraTools)
 		if len(tools) == 0 {
 			fmt.Printf("ℹ️  No [tools] specified in %s or provided via .txt\n", path)
 			return nil
@@ -77,7 +40,7 @@ var setupCmd = &cobra.Command{
 		if setupCheck {
 			fmt.Printf("🔍 Checking pinned tools from %s\n", path)
 		} else {
-			fmt.Printf("� Setting up tools from %s\n", path)
+			fmt.Printf("🔧 Setting up tools from %s\n", path)
 		}
 		// Ensure local bin dir exists and prepare env with GOBIN and PATH
 		binDir := localBinDirFor(path)

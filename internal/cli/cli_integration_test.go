@@ -64,3 +64,10 @@ func TestRigDoctorHelp(t *testing.T) {
 		t.Errorf("expected doctor help output, got: %s", out)
 	}
 }
+
+func TestRigXHelp(t *testing.T) {
+	out := runRigCmd(t, "x", "--help")
+	if !strings.Contains(out, "Run a tool ephemerally") {
+		t.Errorf("expected x help output, got: %s", out)
+	}
+}

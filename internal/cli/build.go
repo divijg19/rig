@@ -24,9 +24,10 @@ var (
 
 // buildCmd implements `rig build` with optional profiles.
 var buildCmd = &cobra.Command{
-	Use:   "build",
-	Short: "Build the project using optional profiles from rig.toml",
-	Long:  "Compose and run 'go build' using flags from rig.toml profiles and CLI overrides.",
+	Use:     "build",
+	Short:   "Build the project using optional profiles from rig.toml",
+	Long:    "Compose and run 'go build' using flags from rig.toml profiles and CLI overrides. Shortcut: 'rig b'.",
+	Aliases: []string{"b"},
 	Example: `
 	rig build --dry-run
 	rig build --profile release
@@ -85,10 +86,10 @@ var buildCmd = &cobra.Command{
 func init() {
 	buildCmd.Flags().StringVar(&buildProfile, "profile", "", "build profile from rig.toml [profile.<name>]")
 	buildCmd.Flags().StringVarP(&buildOutput, "output", "o", "", "output binary path")
-	buildCmd.Flags().StringSliceVar(&buildTags, "tags", nil, "comma-separated build tags")
+	buildCmd.Flags().StringSliceVarP(&buildTags, "tags", "t", nil, "comma-separated build tags")
 	buildCmd.Flags().StringVar(&buildLdflags, "ldflags", "", "custom -ldflags (overrides profile)")
 	buildCmd.Flags().StringVar(&buildGcflags, "gcflags", "", "custom -gcflags (overrides profile)")
 	buildCmd.Flags().StringVarP(&buildDir, "dir", "C", "", "working directory for build")
-	buildCmd.Flags().BoolVar(&buildDryRun, "dry-run", false, "print the build command without executing")
+	buildCmd.Flags().BoolVarP(&buildDryRun, "dry-run", "n", false, "print the build command without executing")
 	rootCmd.AddCommand(buildCmd)
 }

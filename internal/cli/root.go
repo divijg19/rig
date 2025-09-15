@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	cfg "github.com/divijg19/rig/internal/config"
@@ -22,11 +23,14 @@ var rootCmd = &cobra.Command{
 	Long: `rig enhances the Go toolchain with a single, declarative manifest (rig.toml).
 
 Features:
+	• Interactive Setup: 'rig init' with smart defaults (git config, Go version detection)
 	• Unified Manifest: [project], [tasks], [tools], [profile.*], and includes
+	• Structured Tasks: Support simple strings or advanced tables with env vars and dependencies
+	• Explicit Tool Management: 'rig tools sync' with manifest.lock for fast verification
 	• Reproducible Tooling: pins and installs tools into .rig/bin per project
 	• Friendly DX: emoji output, clear errors, and cross-platform commands
 
-Tip: run 'rig init' to create a rig.toml in the current directory.`,
+Tip: run 'rig init' to create an interactive rig.toml, then 'rig tools sync' to install tools.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -36,6 +40,29 @@ func Execute() {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		os.Exit(1)
 	}
+}
+
+// lsCmd offers a short alias for listing tasks (equivalent to `rig run --list`).
+var (
+	lsJSON bool
+)
+
+var lsCmd = &cobra.Command{
+	Use:     "ls",
+	Aliases: []string{"list"},
+	Short:   "List tasks",
+	Long:    "List tasks defined in rig.toml. Shortcuts: 'rig ls', 'rig run --list'.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Delegate to runCmd behavior but force list mode
+		runList = true
+		runListJSON = lsJSON
+		return runCmd.RunE(runCmd, nil)
+	},
+}
+
+func init() {
+	lsCmd.Flags().BoolVarP(&lsJSON, "json", "j", false, "print machine-readable JSON")
+	rootCmd.AddCommand(lsCmd)
 }
 
 func init() {
@@ -109,7 +136,42 @@ func envWithLocalBin(configPath string, extra []string, includeGOBIN bool) []str
 			}
 		}
 	}
-	newPath := localBin + string(os.PathListSeparator) + basePath
+	// Build PATH with localBin first, removing duplicates
+	// Split current PATH and filter duplicates (case-insensitive on Windows)
+	parts := []string{}
+	if basePath != "" {
+		parts = strings.Split(basePath, string(os.PathListSeparator))
+	}
+	dedup := make([]string, 0, len(parts)+1)
+	seen := make(map[string]struct{}, len(parts)+1)
+	// Always put localBin first
+	keyLocal := localBin
+	if runtime.GOOS == "windows" {
+		keyLocal = strings.ToLower(filepath.Clean(localBin))
+	} else {
+		keyLocal = filepath.Clean(localBin)
+	}
+	seen[keyLocal] = struct{}{}
+	dedup = append(dedup, localBin)
+	for _, p := range parts {
+		if p == "" {
+			continue
+		}
+		// Normalize key
+		key := p
+		if runtime.GOOS == "windows" {
+			key = strings.ToLower(filepath.Clean(p))
+		} else {
+			key = filepath.Clean(p)
+		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		// Avoid equality check via equals; we've normalized to key
+		seen[key] = struct{}{}
+		dedup = append(dedup, p)
+	}
+	newPath := strings.Join(dedup, string(os.PathListSeparator))
 	env := make([]string, 0, len(extra)+2)
 	if len(extra) > 0 {
 		env = append(env, extra...)
@@ -120,6 +182,22 @@ func envWithLocalBin(configPath string, extra []string, includeGOBIN bool) []str
 	}
 	env = append(env, "PATH="+newPath)
 	return env
+}
+
+// max returns the larger of a and b.
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+// min returns the smaller of a and b.
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // execCommandEnv runs a command with additional env entries.

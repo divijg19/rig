@@ -9,20 +9,20 @@ Our development is planned in phases, with each phase delivering a significant s
 - [x] Define the initial `rig.toml` specification (`[project]`, `[tasks]`).
 - [x] Implement the `rig run <task>` command.
 - [x] Implement the `rig init` command for bootstrapping.
-- [ ] Basic support for build profiles via `[profile]`.
+- [x] Basic support for build profiles via `[profile]` (flags and wiring in place).
 
 ### Phase 2: v0.2 - The Differentiator (Solving Toolchain Hell)
 **Goal:** Solve the problem of reproducible tooling to make `rig` an indispensable part of the Go workflow.
-- [ ] Implement the `[tools]` section in `rig.toml`.
-- [ ] Build the transparent toolchain installation and management logic.
-- [ ] Create the high-level `rig check` command for project validation.
+- [x] Implement the `[tools]` section in `rig.toml`.
+- [x] Build the transparent toolchain installation and management logic (sync, outdated, lockfile, JSON modes).
+- [x] Create the high-level `rig check` command for project validation (also `rig sync --check`).
 
 ### Phase 3: v0.5 - The DX Revolution (The `bun` Experience)
 **Goal:** Elevate the user experience to be on par with the best modern toolchains.
 - [ ] Build `rig test`: the enhanced, interactive test runner.
 - [ ] Implement `rig run --watch`: a native, configuration-driven file watcher.
 - [ ] Build `rig new`: a powerful scaffolding engine using Git templates.
-- [ ] Add support for task dependencies.
+- [x] Add support for task dependencies.
 
 ### Phase 4: v1.0 and Beyond - The Ecosystem
 **Goal:** Solidify `rig` as the de facto project manager for the modern Go ecosystem.
