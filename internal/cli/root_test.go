@@ -46,3 +46,17 @@ func TestParseVersionFromOutput(t *testing.T) {
 		}
 	}
 }
+
+func TestMinHelper(t *testing.T) {
+	cases := []struct{ a, b, want int }{
+		{1, 2, 1},
+		{2, 1, 1},
+		{3, 3, 3},
+		{0, 5, 0},
+	}
+	for _, c := range cases {
+		if got := min(c.a, c.b); got != c.want {
+			t.Fatalf("min(%d,%d)=%d, want %d", c.a, c.b, got, c.want)
+		}
+	}
+}
