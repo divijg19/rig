@@ -25,8 +25,8 @@ Our development is planned in phases, each with a clear theme and a goal to deli
 - [x] **Lockfile Generation:** Create the `.rig/manifest.lock` file to guarantee deterministic tool installation.
 - [x] **PATH Injection:** Ensure the `.rig/bin` directory is always prepended to the `PATH` for any executed task.
 - [x] **Verification (`rig check`):** Implement the CI-focused command to verify that the environment is in sync with the lockfile.
-- [ ] **Tool Maintenance (`rig tools outdated`):** Add a command to check defined tools against their latest available versions.
-- [ ] **Shortcuts & Usability:** Implement all documented shortcuts (`sync`, `check`, `outdated`, `ls`) and global flags (`--dry-run`, `-C, --dir`).
+- [x] **Tool Maintenance (`rig tools outdated`):** Add a command to check defined tools against their latest available versions.
+- [x] **Shortcuts & Usability:** Implement all documented shortcuts (`sync`, `check`, `outdated`, `ls`) and global flags (`--dry-run`, `-C, --dir`).
 
 ---
 
