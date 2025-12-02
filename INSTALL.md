@@ -6,14 +6,6 @@ This guide shows the recommended way to install `rig` using the Go toolchain.
 
 Works on all platforms with Go installed:
 
-# Installing rig
-
-This guide shows the recommended way to install rig using the Go toolchain.
-
-## Recommended: go install
-
-Works on all platforms with Go installed:
-
 ```pwsh
 go install github.com/divijg19/rig@latest
 ```
