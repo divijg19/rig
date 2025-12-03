@@ -10,9 +10,9 @@ Our development is planned in phases, each with a clear theme and a goal to deli
 
 **Goal:** Establish `rig` as a superior, cross-platform replacement for `make` and shell scripts by providing a single, declarative manifest.
 
-- [x] **Interactive `rig init`:** Intelligent, interactive setup wizard.
-- [x] **Core Task Runner (`rig run`):** Robust executor for simple and structured tasks.
-- [x] **Build Profiles (`rig build`):** `go build` orchestration with flags from `[profile]` tables.
+- [ ] **Interactive `rig init`:** Intelligent, interactive setup wizard.
+- [ ] **Core Task Runner (`rig run`):** Robust executor for simple and structured tasks.
+- [ ] **Build Profiles (`rig build`):** `go build` orchestration with flags from `[profile]` tables.
 
 ---
 
