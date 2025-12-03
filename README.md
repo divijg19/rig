@@ -1,6 +1,6 @@
 # rig
 
-**The all-in-one modern tooling, process and project management developer environment for Go.**
+**The all-in-one modern toolchain, process and project management developer environment for Go.**
 
 > **rig = Cargo’s clarity + Bun’s DX + uv's hygiene + Go’s simplicity and no-nonsense ideology**
 
