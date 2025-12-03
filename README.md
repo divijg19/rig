@@ -1,8 +1,8 @@
 # rig
 
-**The all-in-one developer environment for Go.**
+**The all-in-one modern tooling, process and project management developer environment for Go.**
 
-**rig = Cargo’s clarity + Bun’s DX + uv's hygiene + Go’s simplicity and no-nonsense ideology**
+> **rig = Cargo’s clarity + Bun’s DX + uv's hygiene + Go’s simplicity and no-nonsense ideology**
 
 [![build status](https://img.shields.io/github/actions/workflow/status/divijg19/rig/build.yml?branch=main)](https://github.com/divijg19/rig/actions)
 [![latest release](https://img.shields.io/github/v/release/divijg19/rig)](https://github.com/divijg19/rig/releases)
