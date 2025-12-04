@@ -1,0 +1,42 @@
+# Basic example: single-module project
+# Based on .sandbox/init-minimal-single/rig.toml
+# This file demonstrates the minimal, sensible defaults that `rig init` would produce.
+
+[project]
+name = "init-minimal-single"
+version = "0.1.0"
+authors = []
+license = "MIT"
+
+# Optional build profiles. `rig build --profile <name>` will pick values
+[profile.release]
+ldflags = "-s -w"    # strip debug info for smaller binary
+tags = []
+gcflags = ""
+output = "bin/app"
+
+# Tasks are the primary developer-facing entrypoints. See docs/CONFIGURATION.md
+[tasks]
+# Utility and discovery
+list = "rig run --list"     # list available tasks
+help = "rig --help"         # show CLI help for rig
+
+# Common tasks
+build = "go build ./..."
+test = "go test ./..."
+vet = "go vet ./..."
+fmt = "gofmt -s -w ."
+
+# Run the project: simple single-module example
+run = "go run ."
+
+# Tools: pin tools for reproducible development/CI. Leave empty for minimal template
+[tools]
+# Example pins (commented out):
+# go = "1.21.5"
+# golangci-lint = "1.62.0"
+
+# Notes:
+# - Use `rig sync` to install tools declared in [tools] into .rig/bin.
+# - Use `rig run <task>` to execute a task. `rig ls` is a shortcut for `rig run --list`.
+# - For CI, prefer `rig sync --check --json` to produce a machine-readable summary.
