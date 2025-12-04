@@ -1,27 +1,27 @@
 # rig
 
-**The all-in-one modern toolchain, full-stack orchestrator, process and project manager and developer environment for Go.**
+**The all-in-one modern toolchain, full-stack orchestrator, process & project manager and developer environment for Go.**
 
-> **rig = Cargo’s clarity and reliability + Bun’s DX + uv's hygiene + Go’s simplicity and no-nonsense ideology**
+> **`rig` = Cargo’s clarity and reliability + Bun’s DX + uv's hygiene + Go’s simplicity and no-nonsense ideology**
 
 [![build status](https://img.shields.io/github/actions/workflow/status/divijg19/rig/build.yml?branch=main)](https://github.com/divijg19/rig/actions)
 [![latest release](https://img.shields.io/github/v/release/divijg19/rig)](https://github.com/divijg19/rig/releases)
 [![license](https://img.shields.io/github/license/divijg19/rig)](./LICENSE)
 
-`rig` is an opinionated meta-framework orchestrator, project manager and process supervisor. It orchestrates the official Go toolchain with a single declarative manifest, bridging the gap between a build tool and a modern runtime experience.
+`rig` is an opinionated meta-framework orchestrator, project manager and process supervisor. It replaces Makefiles, `air`, `npm run dev`, and shell scripts with a single, deterministic workflow. 
 
-It replaces Makefiles, `air`, `npm run dev`, and shell scripts with a single, deterministic workflow. It solves script cross-compatibility, tool versioning, and hot-reloading—**without replacing `go build`, `go test`, or `go mod`.**
+It solves script cross-compatibility, tool versioning, and hot-reloading—**without replacing `go build`, `go test`, or `go mod`.** `rig` orchestrates the official Go toolchain with a single declarative manifest, bridging the gap between a **Build Tool**, a **Process Manager**, and a **Developer Experience Platform**. 
 
-It bridges the gap between a **Build Tool**, a **Process Manager**, and a **Developer Experience Platform**. Whether you are building a simple Go CLI or a multi-faceted **Go + Flutter + HTMX** stack, Rig manages the storm you bring to your workplace.
+Whether you are building a simple Go CLI or a multi-faceted **Go + Flutter + HTMX** stack, `rig` manages the storm you bring to your workspace.
 
 ## Why Rig?
 
 *   **⚡ Virtual Runtime (`rig dev`):** Native hot-reloading, environment variable injection, and instant feedback loops.
-*   **🎯 Process Multiplexing:** Concurrently run your Backend (Go), Web (Templ/Tailwind), and Mobile (Flutter) simultanously in one terminal window.
-*   **🔒 Hermetic Tooling:** Rig manages non-Go tools too, and are version-locked in `rig.lock` and sandboxed per project. It downloads and version-locks `tailwindcss`, `templ`, and `sqlc` inside the project. No global version conflicts.
-*   **📦 Cargo-like Management:** A single `rig.toml` acts as the source of truth for tasks(scripts), tools, and build profiles.
-*   **🌉 Automated Pipelines:** Define "glue" tasks. Rig watches files and triggers `sqlc`, `swag`, or codegen tools before your build runs.
-*   **🚀 Production Supervisor (`rig start`):** In production, `rig` acts as PID 1. lightweight process manager for your binaries that handles graceful shutdowns, signal trapping, log formatting and and secrets for your binary.
+*   **🎯 Process Multiplexing:** Concurrently run your Backend (Go), Web (Templ/Tailwind), and Mobile (Flutter) in one terminal window.
+*   **🔒 Hermetic Tooling:** `rig` manages non-Go tools too; they are version-locked in `rig.lock` and sandboxed per project. It downloads and version-locks `tailwindcss`, `templ`, and `sqlc` inside the project. No global version conflicts.
+*   **📦 Cargo-like Management:** A single `rig.toml` acts as the source of truth for tasks (scripts), tools, and build profiles.
+*   **🌉 Automated Pipelines:** Define "glue" tasks. `rig` watches files and triggers `sqlc`, `swag`, or codegen tools before your build runs.
+*   **🚀 Production Supervisor (`rig start`):** In production, `rig` acts as PID 1; a lightweight process manager for your binaries that handles graceful shutdowns, signal trapping, log formatting and secrets for your binary.
 
 ---
 
@@ -43,7 +43,8 @@ go install github.com/divijg19/rig@latest
 ## Quick Start
 
 ### 1. Initialize the project
-> **(`rig init`)**
+> **`rig init`**
+
 `rig` scans your project and creates a `rig.toml` with smart defaults.
 ```bash
 cd my-go-project
@@ -52,7 +53,8 @@ rig init
 ```
 
 ### 2. The Dev Loop
-> **(`rig dev`)**
+> **`rig dev`**
+
 Stop opening 4 terminal tabs. No need to configure `air` or write a Makefile. If `rig` detects a main file, it just works.
 ```bash
 rig dev
@@ -62,10 +64,11 @@ rig dev
 # 🚀 Started (PID: 1234)
 ```
 
-*   **What happens?** Rig verifies tool versions, runs generators (SQL/OpenAPI), starts the Go server (hot-reload), watches Tailwind CSS, and boots the Flutter emulator—all in one stream.
+*   **What happens?** `rig` verifies tool versions, runs generators (SQL/OpenAPI), starts the Go server (hot-reload), watches Tailwind CSS, and boots the Flutter emulator—all in one stream.
 
 ### 3. Sync Tools
-> **(`rig sync`)**
+> **`rig sync`**
+
 If your team needs specific linters or generators, pin them in `rig.toml` and sync.
 ```bash
 rig sync
@@ -79,8 +82,8 @@ rig sync
 ## Core Features
 
 ### 1. ⚡ The Virtual Runtime (`rig dev`) & Multiplexing (The "Vite" Replacement)
-Rig makes Go feel like a scripting language. It watches your files, handles rebuilds incrementally, and manages child processes. It can multiplex multiple processes (like Tailwind or Flutter) alongside your Go server.
-Development often requires running multiple things at once. Rig manages them as a unified stream.
+Development often requires running multiple things at once. `rig` can multiplex multiple processes (like Tailwind or Flutter) alongside your Go server, managing them as a unified stream, acting as a "Vite" solution to make Go feel like a scripting language. It watches your files, handles rebuilds incrementally, and manages child processes.
+
 
 ```toml
 [tasks.dev]
@@ -93,8 +96,8 @@ styles = { cmd = "tailwindcss -i input.css -o public/output.css --watch" }
 mobile = { cmd = "flutter run", cwd = "./mobile", optional = true }
 ```
 
-### 2. 🔒 Hermetic Tooling (No `node_modules`)
-Stop asking your team to `go install` tools globally. Rig installs tools into a project-local `.rig/bin`, updates your `PATH` automatically during tasks, and locks versions in `rig.lock`.
+### 2. 🔒 Hermetic Tooling (`rig.toml` & `rig.lock`, No `node_modules`)
+Stop asking your team to `go install` tools globally. `rig` installs tools into a project-local `.rig/bin`, updates your `PATH` automatically during tasks, and locks versions in `rig.lock`.
 
 ```toml
 [tools]
@@ -152,7 +155,6 @@ flags = ['-ldflags="-s -w"', '-trimpath']
 
 ---
 
-
 ## Command Reference
 
 | Command | Description |
@@ -161,7 +163,7 @@ flags = ['-ldflags="-s -w"', '-trimpath']
 | **`rig build`** | Build the project using defined pipelines and profiles (e.g., `--profile release`). |
 | **`rig test`** | Run tests (wraps `go test` with better output). |
 | **`rig start`** | Run the binary in production mode (Supervisor/PID 1). |
-| **`rig run <task>`** | Execute a task(script) defined in `rig.toml`. |
+| **`rig run <task>`** | Execute a task (script) defined in `rig.toml`. |
 | **`rig sync`** | Download and lock pinned tools in generated `rig.lock`. |
 | **`rig x <tool>`** | Download and execute a tool ephemerally (`rig x mockery`). |
 | **`rig init`** | Scaffold a new `rig.toml` in the current directory. |
@@ -173,22 +175,14 @@ flags = ['-ldflags="-s -w"', '-trimpath']
 
 ---
 
-
 ## Documentation
 
 For advanced usage, please refer to the documentation folder:
 
 *   **[Configuration Reference](./docs/CONFIGURATION.md):** Full documentation of the `rig.toml` schema, workspaces, and build profiles.
 *   **[CLI Reference](./docs/CLI.md):** Detailed list of all commands (e.g., `rig build`, `rig test`) and global flags.
-*   **[Production Guide](./docs/PRODUCTION.md):** How to use Rig as a process supervisor in Docker/Kubernetes. Deep dive into `rig start`, PID 1 strategies, and Docker/Kubernetes integration.
-*   **[The Golden Stack](./docs/GOLDEN_STACK.md):** Guide to Go + Templ + Flutter development with Rig.
-
-### The File Structure Strategy
-
-1.  **`README.md`**: The high-level overview, installation, and value prop.
-2.  **`docs/CONFIGURATION.md`**: (New) The detailed `rig.toml` reference (moved from the original README).
-3.  **`docs/CLI.md`**: (New) The full command reference and global flags (moved from the original README).
-4.  **`docs/PRODUCTION.md`**: (New) Deep dive into `rig start` and the Supervisor/PID 1 features (Original feature preserved here).
+*   **[Production Guide](./docs/PRODUCTION.md):** How to use `rig` as a process supervisor in Docker/Kubernetes. Deep dive into `rig start`, PID 1 strategies, and Docker/Kubernetes integration.
+*   **[The Golden Stack](./docs/GOLDEN_STACK.md):** Guide to Go + Templ + Flutter development with `rig`.
 
 ---
 
