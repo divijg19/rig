@@ -1,5 +1,7 @@
 # rig
 
+Development starts mid-2026.
+
 **The all-in-one modern toolchain, full-stack orchestrator, process & project manager and developer environment for Go.**
 
 > **`rig` = Cargo’s clarity and reliability + Bun’s DX + uv's hygiene + Go’s simplicity and no-nonsense ideology**
