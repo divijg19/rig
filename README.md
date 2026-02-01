@@ -184,7 +184,9 @@ For advanced usage, please refer to the documentation folder:
 *   **[Production Guide](./docs/PRODUCTION.md):** How to use `rig` as a process supervisor in Docker/Kubernetes. Deep dive into `rig start`, PID 1 strategies, and Docker/Kubernetes integration.
 *   **[The Golden Stack](./docs/GOLDEN_STACK.md):** Guide to Go + Templ + Flutter development with `rig`.
 
+#### Bonus End-goals
+- Zig: Introduce `zig cc` as a linker or plausible build tool for all cgo and c, c++ code managed through `rig`.
+- Glyph: Integrate `glyph *` commands directly into rig.
 ---
-
 
 Made with ❤️ for the Go community, and dedicated to Tarushi, this project's origin.
