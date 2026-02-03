@@ -1,4 +1,4 @@
-Examples
+# Examples
 ========
 
 This directory contains small, copy-pasteable `rig.toml` manifests that demonstrate common project layouts and workflows.
@@ -12,25 +12,26 @@ How to use an example locally
 
 1. Copy the desired `rig.toml` into the root of a working directory (or edit it in place):
 
-```pwsh
+```sh
 cp examples/basic/rig.toml /path/to/your/project/rig.toml
 ```
 
-2. Initialize or inspect the manifest (interactive):
+2. Initialize or inspect the manifest:
 
-```pwsh
-rig init --yes   # only if you want to re-generate via rig
+```sh
 rig run --list
 ```
 
 3. Sync tools and run tasks:
 
-```pwsh
+```sh
 rig sync           # installs pinned tools into .rig/bin
 rig run dev        # run a development task (if present)
 rig build --profile release
 ```
 
 Notes
+
 - For monorepo examples, prefer placing shared fragments in `.rig/rig.tasks.toml` and `.rig/rig.tools.toml` and using `include = [".rig/rig.tasks.toml", ".rig/rig.tools.toml"]` in the root `rig.toml`.
-- Use `rig sync --check --json` in CI to verify tool parity and fail builds on mismatch. See docs/CHEATSHEET.md for a GitHub Actions snippet.
+- `rig sync` writes `rig.lock` (deterministic tool pins) next to `rig.toml`.
+- Use `rig sync --check --json` in CI to verify `rig.lock` + installed tools and fail builds on mismatch.

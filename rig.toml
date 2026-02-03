@@ -1,16 +1,65 @@
-# rig.toml for this repository (developer defaults)
+# ---------------------------------------------------------------------
+# rig.toml — Reference configuration for the rig project itself
+#
+# This file demonstrates how rig is intended to be used in practice.
+# It is intentionally explicit, readable, and boring.
+#
+# rig defines and runs project environments.
+# It does not replace the Go toolchain.
+# ---------------------------------------------------------------------
 
 [project]
 name = "rig"
 version = "0.1.0"
 
+# ---------------------------------------------------------------------
+# Tasks
+#
+# Tasks declare *intent*.
+# They describe what a developer wants to do, not how to be clever.
+# ---------------------------------------------------------------------
+
 [tasks]
-list = "rig run --list"
-help = "rig --help"
+
+# --- Build ------------------------------------------------------------
 build = "go build ./..."
+
+# Build the rig CLI binary locally.
+# This is used for dogfooding rig while developing rig itself.
 cli = "go build -o ./.bin/rig ./cmd/rig"
+
+# --- Quality ----------------------------------------------------------
 test = "go test ./..."
-vet = "go vet ./..."
-fmt = "gofmt -s -w ."
-run-help = "./.bin/rig --help"
-run-list = "./.bin/rig run --list"
+vet  = "go vet ./..."
+fmt  = "gofmt -s -w ."
+
+# --- Housekeeping -----------------------------------------------------
+clean = "rm -f ./.bin/rig"
+
+# ---------------------------------------------------------------------
+# Composite tasks
+#
+# These tasks combine smaller, explicit tasks.
+# They do not introduce new behavior.
+# ---------------------------------------------------------------------
+
+[tasks.check]
+description = "Run all local verification checks"
+depends_on = ["test", "vet"]
+
+[tasks.verify]
+description = "Format, test, and vet the codebase"
+depends_on = ["fmt", "test", "vet"]
+
+# ---------------------------------------------------------------------
+# Development workflow
+#
+# This demonstrates rig orchestrating a simple development environment
+# without assuming hot reload, watchers, or magic.
+# ---------------------------------------------------------------------
+
+[tasks.dev]
+description = "Build rig and verify the CLI starts correctly"
+depends_on = ["cli"]
+command = "./.bin/rig --help"
+

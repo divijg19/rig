@@ -6,6 +6,7 @@ import (
 	stdjson "encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -19,6 +20,7 @@ var (
 	toolsCheck     bool
 	outdatedJSON   bool
 	toolsCheckJSON bool
+	toolsOffline   bool
 )
 
 // toolsCmd represents the tools command
@@ -70,9 +72,7 @@ var toolsCheckCmd = &cobra.Command{
 			fmt.Printf("ℹ️  No [tools] specified in %s or provided via .txt\n", path)
 			return nil
 		}
-		lockFile := manifestLockPath(path)
-		currentHash := computeToolsHash(tools)
-		return checkToolsSync(tools, lockFile, currentHash, path)
+		return checkToolsSync(tools, path)
 	},
 }
 
@@ -130,12 +130,8 @@ var toolsSyncCmd = &cobra.Command{
 			return nil
 		}
 
-		// Check if tools are already in sync
-		lockFile := manifestLockPath(path)
-		currentHash := computeToolsHash(tools)
-
 		if toolsCheck {
-			return checkToolsSync(tools, lockFile, currentHash, path)
+			return checkToolsSync(tools, path)
 		}
 
 		fmt.Printf("🔧 Syncing tools from %s\n", path)
@@ -145,37 +141,42 @@ var toolsSyncCmd = &cobra.Command{
 		if err := os.MkdirAll(binDir, 0o755); err != nil {
 			return fmt.Errorf("create local bin dir: %w", err)
 		}
-		env := envWithLocalBin(path, nil, true)
+		env := envWithLocalBin(path, toolsOfflineEnv(toolsOffline), true)
+
+		// Resolve tools into a deterministic rig.lock representation.
+		// This enables offline installs/checks and ensures sync is reproducible.
+		lockedTools, err := core.ResolveLockedTools(tools, filepath.Dir(path), env)
+		if err != nil {
+			return err
+		}
 
 		// Concurrent installs with deterministic reporting
-		names := make([]string, 0, len(tools))
-		for n := range tools {
-			names = append(names, n)
-		}
-		sort.Strings(names)
+		sort.Slice(lockedTools, func(i, j int) bool {
+			return lockedTools[i].Requested < lockedTools[j].Requested
+		})
 
 		type result struct {
 			name, bin, ver string
 			err            error
 		}
-		results := make([]result, len(names))
+		results := make([]result, len(lockedTools))
 		// Concurrency: up to NumCPU, but no more than the number of tools
-		conc := max(1, min(len(names), runtime.NumCPU()))
+		conc := max(1, min(len(lockedTools), runtime.NumCPU()))
 		sem := make(chan struct{}, conc)
 		var wg sync.WaitGroup
-		for i, name := range names {
-			i, name := i, name
-			ver := tools[name]
+		for i, lt := range lockedTools {
+			i, lt := i, lt
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				sem <- struct{}{}
 				defer func() { <-sem }()
-				normalized := core.EnsureSemverPrefixV(ver)
-				module, bin := core.ResolveModuleAndBin(name)
-				moduleWithVer := module + "@" + normalized
+				toolName, _, _ := parseRequested(lt.Requested)
+				module, resolvedVer := splitResolved(lt.Resolved)
+				_, bin := core.ResolveModuleAndBin(toolName)
+				moduleWithVer := module + "@" + resolvedVer
 				err := execCommandSilentEnv("go", []string{"install", moduleWithVer}, env)
-				results[i] = result{name: name, bin: bin, ver: normalized, err: err}
+				results[i] = result{name: lt.Requested, bin: bin, ver: resolvedVer, err: err}
 			}()
 		}
 		wg.Wait()
@@ -186,12 +187,22 @@ var toolsSyncCmd = &cobra.Command{
 			fmt.Printf("✅ %s %s installed\n", r.bin, r.ver)
 		}
 
-		// Write lock file with hash of current tools
-		if err := os.WriteFile(lockFile, []byte(currentHash), 0o644); err != nil {
+		// Only write lock files after successful installs.
+		// This prevents partial or misleading lockfile updates.
+		rigLock := core.Lockfile{Schema: core.LockSchema0, Tools: lockedTools}
+		rigLockPath := rigLockPathFor(path)
+		if err := core.WriteLockfile(rigLockPath, rigLock); err != nil {
+			return fmt.Errorf("write rig.lock: %w", err)
+		}
+
+		// Write a fast manifest hash lock as a cache (derived from the declared tools map).
+		manifestPath := manifestLockPath(path)
+		currentHash := computeToolsHash(tools)
+		if err := os.WriteFile(manifestPath, []byte(currentHash), 0o644); err != nil {
 			return fmt.Errorf("write manifest lock: %w", err)
 		}
 
-		fmt.Printf("🔒 Tools synced and locked in %s\n", lockFile)
+		fmt.Printf("🔒 Tools synced (rig.lock: %s, manifest: %s)\n", rigLockPath, manifestPath)
 		return nil
 	},
 }
@@ -266,6 +277,7 @@ var toolsOutdatedCmd = &cobra.Command{
 func init() {
 	toolsSyncCmd.Flags().BoolVar(&toolsCheck, "check", false, "verify tools are in sync without installing")
 	toolsSyncCmd.Flags().BoolVar(&toolsCheckJSON, "json", false, "use with --check to print machine-readable JSON summary")
+	toolsSyncCmd.Flags().BoolVar(&toolsOffline, "offline", false, "do not download modules (sets GOPROXY=off, GOSUMDB=off)")
 	toolsCheckCmd.Flags().BoolVar(&toolsCheckJSON, "json", false, "print machine-readable JSON summary")
 	toolsOutdatedCmd.Flags().BoolVar(&outdatedJSON, "json", false, "print machine-readable JSON status")
 
@@ -275,43 +287,57 @@ func init() {
 	rootCmd.AddCommand(toolsCmd)
 }
 
-// checkToolsSync verifies if tools are in sync with the manifest
-func checkToolsSync(tools map[string]string, lockFile, currentHash, configPath string) error {
-	// Check if lock file exists and matches
-	if lockData, err := os.ReadFile(lockFile); err == nil {
-		if strings.TrimSpace(string(lockData)) == currentHash {
-			if toolsCheckJSON {
-				// Emit an empty diff summary in JSON for CI-friendly checks
-				payload := struct {
-					Status  []ToolStatusRow `json:"status"`
-					Summary struct {
-						Missing    int `json:"missing"`
-						Mismatched int `json:"mismatched"`
-						Extra      int `json:"extra"`
-					} `json:"summary"`
-				}{Status: []ToolStatusRow{}}
-				b, err := stdjson.MarshalIndent(payload, "", "  ")
-				if err != nil {
-					return err
-				}
-				fmt.Println(string(b))
-			} else {
-				fmt.Printf("✅ Tools are in sync with %s\n", configPath)
+// checkToolsSync verifies rig.lock is consistent with rig.toml, then checks installed binaries.
+func checkToolsSync(tools map[string]string, configPath string) error {
+	lockPath := rigLockPathFor(configPath)
+	lock, err := core.ReadLockfile(lockPath)
+	if err != nil {
+		if toolsCheckJSON {
+			payload := struct {
+				Status  []ToolStatusRow `json:"status"`
+				Summary struct {
+					Missing    int      `json:"missing"`
+					Mismatched int      `json:"mismatched"`
+					Extra      int      `json:"extra"`
+					Extras     []string `json:"extras"`
+					Error      string   `json:"error"`
+				} `json:"summary"`
+			}{Status: []ToolStatusRow{}}
+			payload.Summary.Error = fmt.Sprintf("rig.lock missing or unreadable: %v", err)
+			b, jerr := stdjson.MarshalIndent(payload, "", "  ")
+			if jerr != nil {
+				return jerr
 			}
-			return nil
+			fmt.Println(string(b))
 		}
+		return fmt.Errorf("rig.lock missing or unreadable (%s); run 'rig tools sync' to generate it", lockPath)
+	}
+	if err := lockMatchesTools(lock, tools); err != nil {
+		if toolsCheckJSON {
+			payload := struct {
+				Status  []ToolStatusRow `json:"status"`
+				Summary struct {
+					Missing    int      `json:"missing"`
+					Mismatched int      `json:"mismatched"`
+					Extra      int      `json:"extra"`
+					Extras     []string `json:"extras"`
+					Error      string   `json:"error"`
+				} `json:"summary"`
+			}{Status: []ToolStatusRow{}}
+			payload.Summary.Error = err.Error()
+			b, jerr := stdjson.MarshalIndent(payload, "", "  ")
+			if jerr != nil {
+				return jerr
+			}
+			fmt.Println(string(b))
+		}
+		return fmt.Errorf("rig.lock out of date; run 'rig tools sync' (%w)", err)
 	}
 
 	if !toolsCheckJSON {
-		fmt.Printf("❌ Tools are out of sync. Run 'rig tools sync' to update.\n")
+		fmt.Printf("🔍 Checking tools status in %s:\n", configPath)
 	}
-
-	// Show detailed status
-
-	if !toolsCheckJSON {
-		fmt.Printf("🔍 Checking individual tools from %s:\n", configPath)
-	}
-	rows, missing, mismatched := collectToolStatus(tools, configPath)
+	rows, missing, mismatched := collectToolStatusWithLock(tools, lock, configPath)
 
 	// Detect extra binaries present in .rig/bin that aren't declared in tools
 	var extras []string
@@ -342,6 +368,7 @@ func checkToolsSync(tools map[string]string, lockFile, currentHash, configPath s
 	}
 	extra := len(extras)
 
+	issues := missing + mismatched + extra
 	if toolsCheckJSON {
 		payload := struct {
 			Status  []ToolStatusRow `json:"status"`
@@ -355,15 +382,31 @@ func checkToolsSync(tools map[string]string, lockFile, currentHash, configPath s
 		payload.Summary.Missing = missing
 		payload.Summary.Mismatched = mismatched
 		payload.Summary.Extra = extra
-		// Use precomputed, normalized extras
 		payload.Summary.Extras = extras
-		b, err := stdjson.MarshalIndent(payload, "", "  ")
-		if err != nil {
-			return err
+		b, jerr := stdjson.MarshalIndent(payload, "", "  ")
+		if jerr != nil {
+			return jerr
 		}
 		fmt.Println(string(b))
 	} else {
+		for _, r := range rows {
+			switch r.Status {
+			case "missing":
+				fmt.Printf("  ❌ %s not found (want %s)\n", r.Bin, r.Want)
+			case "mismatch":
+				fmt.Printf("  ❌ %s version mismatch (have %s, want %s)\n", r.Bin, r.Have, r.Want)
+			default:
+				fmt.Printf("  ✅ %s %s\n", r.Bin, r.Want)
+			}
+		}
+		if issues == 0 {
+			fmt.Println("✅ All tools up to date")
+			return nil
+		}
 		fmt.Printf("\nSummary: %d missing, %d mismatched, %d extra\n", missing, mismatched, extra)
+	}
+	if issues == 0 {
+		return nil
 	}
 	return fmt.Errorf("tools out of sync")
 }

@@ -1,42 +1,57 @@
-# Basic example: single-module project
-# Based on .sandbox/init-minimal-single/rig.toml
-# This file demonstrates the minimal, sensible defaults that `rig init` would produce.
+# ---------------------------------------------------------------------
+# Basic example: single-module Go project
+#
+# This file demonstrates a fully scoped but minimally used `rig.toml`
+# for a simple Go application.
+#
+# It shows the complete shape of a rig-managed project while keeping
+# behavior explicit and conservative.
+# ---------------------------------------------------------------------
 
 [project]
-name = "init-minimal-single"
+name = "example-basic"
 version = "0.1.0"
-authors = []
 license = "MIT"
 
-# Optional build profiles. `rig build --profile <name>` will pick values
-[profile.release]
-ldflags = "-s -w"    # strip debug info for smaller binary
-tags = []
-gcflags = ""
-output = "bin/app"
+# ---------------------------------------------------------------------
+# Tasks
+#
+# Tasks declare project intent.
+# They are explicit, boring, and easy to read.
+# ---------------------------------------------------------------------
 
-# Tasks are the primary developer-facing entrypoints. See docs/CONFIGURATION.md
 [tasks]
-# Utility and discovery
-list = "rig run --list"     # list available tasks
-help = "rig --help"         # show CLI help for rig
 
-# Common tasks
+# Build the project
 build = "go build ./..."
-test = "go test ./..."
-vet = "go vet ./..."
-fmt = "gofmt -s -w ."
 
-# Run the project: simple single-module example
+# Verify code quality
+test = "go test ./..."
+vet  = "go vet ./..."
+fmt  = "gofmt -s -w ."
+
+# Run the application (single-module example)
 run = "go run ."
 
-# Tools: pin tools for reproducible development/CI. Leave empty for minimal template
-[tools]
-# Example pins (commented out):
-# go = "1.21.5"
-# golangci-lint = "1.62.0"
+# ---------------------------------------------------------------------
+# Build profiles
+#
+# Profiles describe build intent for different environments.
+# They do not introduce new logic.
+# ---------------------------------------------------------------------
 
-# Notes:
-# - Use `rig sync` to install tools declared in [tools] into .rig/bin.
-# - Use `rig run <task>` to execute a task. `rig ls` is a shortcut for `rig run --list`.
-# - For CI, prefer `rig sync --check --json` to produce a machine-readable summary.
+[profile.release]
+# Example release flags for smaller binaries
+ldflags = "-s -w"
+
+# ---------------------------------------------------------------------
+# Tools
+#
+# Tool pinning surface for reproducible development and CI.
+# Left empty here to keep the example minimal.
+# ---------------------------------------------------------------------
+
+[tools]
+# Example pins (uncomment as needed):
+# go = "1.22.1"
+# golangci-lint = "1.59.1"

@@ -38,6 +38,7 @@ func init() {
 	// Mirror relevant flags so they affect the same underlying variables
 	syncCmd.Flags().BoolVar(&toolsCheck, "check", false, "verify tools are in sync without installing")
 	syncCmd.Flags().BoolVar(&toolsCheckJSON, "json", false, "use with --check to print machine-readable JSON summary")
+	syncCmd.Flags().BoolVar(&toolsOffline, "offline", false, "do not download modules (sets GOPROXY=off, GOSUMDB=off)")
 
 	checkCmd.Flags().BoolVar(&toolsCheckJSON, "json", false, "print machine-readable JSON summary")
 

@@ -1,4 +1,4 @@
-Monorepo example
+# Monorepo example
 =================
 
 Location: `examples/monorepo/rig.toml`
@@ -16,9 +16,10 @@ Quick start
 ```pwsh
 # Copy the example into a repo root
 cp examples/monorepo/rig.toml /path/to/monorepo/rig.toml
+
 # Optionally create .rig/ and split tasks/tools into the include files
 mkdir -p .rig
-# Move the tasks/tools fragments into .rig/ if you prefer that layout
+
 # Then run:
 rig sync
 rig run dev
@@ -26,7 +27,8 @@ rig run dev
 
 CI and reproducibility
 
-- Use `rig sync --check --json` in CI to validate pinned tools are installed.
+- `rig sync` writes `rig.lock` next to `rig.toml` and installs tools into `.rig/bin`.
+- Use `rig sync --check --json` in CI to validate `rig.lock` matches `rig.toml` and that the pinned tools are installed.
 - In CI you can fail the job when the JSON payload indicates mismatches.
 
 Notes

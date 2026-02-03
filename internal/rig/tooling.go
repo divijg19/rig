@@ -29,8 +29,11 @@ var ToolShortNameMap = map[string]string{
 //	"golangci-lint" => ("github.com/golangci/golangci-lint/cmd/golangci-lint", "golangci-lint")
 func ResolveModuleAndBin(name string) (module string, bin string) {
 	module = name
+	// If the tool was specified by a known short name, keep the binary name as the short name.
+	// This avoids incorrect binaries like "v2" for modules ending in /v2.
 	if mapped, ok := ToolShortNameMap[name]; ok {
 		module = mapped
+		return module, name
 	}
 	bin = name
 	if i := strings.LastIndex(module, "/"); i >= 0 {
