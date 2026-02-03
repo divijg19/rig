@@ -91,21 +91,21 @@ The `[tools]` section allows pinning tool versions used for development and CI. 
 Key points:
 - Keys may be short names (mapped by `internal/rig/tooling.go`) or full Go module paths.
 - Values are versions; `latest` is supported.
-- You may also pin the Go toolchain itself with `go = "1.21.5"`.
 
 Examples:
 
 ```toml
 [tools]
-go = "1.21.5"
 golangci-lint = "1.62.0"
 github.com/vektra/mockery/v2 = "v2.46.0"
 ```
 
 Tool resolution rules:
 - `rig` maps short names (e.g. `golangci-lint`) to canonical module paths for `go install`.
-- When you run `rig sync`, `rig` will write the installed state into `.rig/manifest.lock`.
-- For CI, use `rig sync --check --json` or `rig sync --check` to verify lockfile parity.
+- When you run `rig sync`, `rig` resolves tools deterministically and writes `rig.lock` (schema=0) next to `rig.toml`.
+- `rig sync` installs the resolved `module@version` pins into `.rig/bin` and also writes `.rig/manifest.lock` (a hash cache) for quick drift detection.
+- For CI, use `rig sync --check --json` or `rig sync --check` to verify `rig.lock` and installed tools.
+- For hermetic/offline environments, use `rig sync --offline` (fails if required modules are not already in the module cache).
 
 ---
 

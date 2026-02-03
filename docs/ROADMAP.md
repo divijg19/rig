@@ -6,29 +6,29 @@ Our development is planned in phases, each with a clear theme and a goal to deli
 
 ---
 
-### ✅ **Phase 1: The Declarative Foundation (v0.1 - v0.3)**
+### ✅ **Phase 1: The Declarative Foundation (v0.1.0-alpha)**
 
 **Goal:** Establish `rig` as a superior, cross-platform replacement for `make` and shell scripts by providing a single, declarative manifest.
 
-- [ ] **Interactive `rig init`:** Intelligent, interactive setup wizard.
-- [ ] **Core Task Runner (`rig run`):** Robust executor for simple and structured tasks.
-- [ ] **Build Profiles (`rig build`):** `go build` orchestration with flags from `[profile]` tables.
+- [x] **Interactive `rig init`:** Intelligent, interactive setup wizard.
+- [x] **Core Task Runner (`rig run`):** Robust executor for simple and structured tasks.
+- [x] **Build Profiles (`rig build`):** `go build` orchestration with flags from `[profile]` tables.
 
 ---
 
-### ✅ **Phase 2: The Reproducible Workspace (v0.4 - v0.6)**
+### ✅ **Phase 2: The Reproducible Workspace (v0.1 - v0.4)**
 
 **Goal:** Solve the "it works on my machine" problem, making `rig` a critical tool for team collaboration and reliable CI/CD.
 
-- [ ] **Tooling Engine (`rig tools sync`):** Sandboxed, version-locked tool installation.
-- [ ] **Lockfile Generation (`rig.lock`):** Guarantee deterministic tool installation.
-- [ ] **PATH Injection:** Automatic use of project-local tools.
-- [ ] **CI Verification (`rig check`):** Verify environment sync against `rig.lock`.
-- [ ] **Tool Maintenance (`rig outdated`):** Check defined tools against latest versions.
+- [x] **Tooling Engine (`rig tools sync`):** Sandboxed, version-locked tool installation.
+- [x] **Lockfile Generation (`rig.lock`):** Deterministic tool resolution and installation.
+- [x] **PATH Injection:** Automatic use of project-local tools.
+- [x] **CI Verification (`rig check` / `rig sync --check`):** Verify environment sync against `rig.lock`.
+- [x] **Tool Maintenance (`rig outdated`):** Check tools that are missing or mismatched.
 
 ---
 
-### 🏃 **Phase 3: The Virtual Runtime Experience (v0.7 - v1.0)**
+### 🏃 **Phase 3: The Virtual Runtime Experience (v0.5 - v0.8)**
 
 **Goal:** Deliver the "Bun DX" by transforming `rig` from a task runner into a true development environment with a lightning-fast feedback loop. This is the current focus.
 
@@ -40,7 +40,7 @@ Our development is planned in phases, each with a clear theme and a goal to deli
 
 ---
 
-### 🚀 **Phase 4: The Production & Ecosystem Platform (Post-v1.0)**
+### 🚀 **Phase 4: The Production & Ecosystem Platform (Before v1.0)**
 
 **Goal:** Bridge the gap from development to deployment, solidifying `rig` as an end-to-end platform for the entire Go application lifecycle.
 

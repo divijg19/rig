@@ -1,5 +1,5 @@
 Basic example
-==============
+=============
 
 Location: `examples/basic/rig.toml`
 
@@ -15,20 +15,16 @@ Quick start
 ```pwsh
 # From the example directory
 cd examples/basic
+
 # Copy into a real project or use as a template
 cp rig.toml /path/to/your/project/rig.toml
 cd /path/to/your/project
-rig sync    # (optional) install tools if you added any
+
+# Optional: install pinned tools if you add any
+rig sync
+
+# Inspect available tasks
 rig run --list
+
+# Run verification
 rig run test
-```
-
-When to use this example
-
-- Small services and libraries
-- When you prefer a single-file manifest and minimal tooling
-
-Customization
-
-- Add pins to `[tools]` (see `docs/CONFIGURATION.md`) and run `rig sync`.
-- Add structured tasks using `argv`, `command`, and `depends_on` for complex flows.

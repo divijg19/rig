@@ -1,64 +1,69 @@
-# Monorepo example (merged):
-# Based on .sandbox/init-dx-monorepo and its .rig/ included files.
-# This single manifest shows a realistic monorepo layout combined for clarity.
+# ---------------------------------------------------------------------
+# Monorepo example (advanced / experimental)
+#
+# This file demonstrates a realistic monorepo configuration using rig.
+# For clarity, shared `.rig/` fragments are inlined here.
+#
+# In real monorepos, shared tasks and tools would normally live under
+# `.rig/` and be referenced via `include`.
+# ---------------------------------------------------------------------
 
 [project]
 name = "init-dx-monorepo"
 version = "0.1.0"
-authors = []
 license = "MIT"
 
-# Dev and Release profiles
+# ---------------------------------------------------------------------
+# Build profiles
+#
+# Profiles describe build intent for different environments.
+# They do not introduce logic.
+# ---------------------------------------------------------------------
+
 [profile.dev]
 flags = ["-race"]
-tags = []
-gcflags = ""
 
 [profile.release]
 ldflags = "-s -w"
-tags = []
-gcflags = ""
 output = "bin/app"
 
-# In a real monorepo we'd normally place shared tasks and tools under `.rig/` and use
-# `include = ["rig.tasks.toml", "rig.tools.toml"]` in the root manifest. For
-# readability this example inlines the sections that would live in `.rig/`.
-
-# ----------------------------
+# ---------------------------------------------------------------------
 # Tasks (originally .rig/rig.tasks.toml)
-# ----------------------------
+#
+# These tasks are shared across packages in the monorepo.
+# ---------------------------------------------------------------------
+
 [tasks]
-# Discovery
-list = "rig run --list"
-help = "rig --help"
 
-# Build / test / lint
+# Build and verification
 build = "go build ./..."
-test = "go test ./..."
-vet = "go vet ./..."
-fmt = "gofmt -s -w ."
+test  = "go test ./..."
+vet   = "go vet ./..."
+fmt   = "gofmt -s -w ."
 
-# Local development
+# Local execution (single entrypoint example)
 run = "go run ."
-lint = "golangci-lint run ./..."
-# dev uses reflex to watch .go files and re-run
-# Using an argv-style task is robust across platforms and avoids shell quoting troubles
-dev = "reflex -r \"\\.go$\" -- sh -c 'go run . '"
 
-# ----------------------------
+# Linting using an external tool (experimental)
+lint = "golangci-lint run ./..."
+
+# Development workflow using file watching (experimental)
+#
+# This task demonstrates how external tools can be orchestrated via rig.
+# File watching and shell pipelines are not yet stabilized.
+dev = "reflex -r \"\\.go$\" -- sh -c 'go run .'"
+
+# ---------------------------------------------------------------------
 # Tools (originally .rig/rig.tools.toml)
-# ----------------------------
+#
+# Tool pinning surface for development and CI parity.
+# Lockfile semantics may evolve as rig stabilizes.
+# ---------------------------------------------------------------------
+
 [tools]
-# Pin Golang toolchain for reproducible dev/CI
+# Pin Go toolchain for reproducible development / CI
 go = "1.21.5"
 
 # Developer tooling
 golangci-lint = "1.62.0"
 github.com/cespare/reflex = "latest"
-
-# Notes and recommended workflow for monorepos:
-# - Place shared tasks/tools in `.rig/rig.tasks.toml` and `.rig/rig.tools.toml` and use
-#   `include = [".rig/rig.tasks.toml", ".rig/rig.tools.toml"]` in the root `rig.toml`.
-# - `rig sync` (or `rig setup`) installs pinned tools into `.rig/bin`; team members and
-#   CI should use the lockfile produced by `rig sync` to ensure reproducible installs.
-# - Use `rig run dev` for local development and `rig build --profile release` for CI builds.

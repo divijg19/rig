@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -26,9 +27,26 @@ func projectRoot(t *testing.T) string {
 	}
 }
 
+func buildRigBinary(t *testing.T, outDir string) string {
+	binName := "rig"
+	if runtime.GOOS == "windows" {
+		binName += ".exe"
+	}
+	binPath := filepath.Join(outDir, binName)
+	root := projectRoot(t)
+	cmd := exec.Command("go", "build", "-o", binPath, "./cmd/rig")
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("build rig failed: %v\n%s", err, out)
+	}
+	return binPath
+}
+
 func runRigCmd(t *testing.T, args ...string) string {
 	root := projectRoot(t)
-	cmd := exec.Command("go", append([]string{"run", "./cmd/rig"}, args...)...)
+	bin := buildRigBinary(t, t.TempDir())
+	cmd := exec.Command(bin, args...)
 	cmd.Dir = root
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -47,7 +65,7 @@ func TestRigBuildDryRun(t *testing.T) {
 func TestRigRunList(t *testing.T) {
 	out := runRigCmd(t, "run", "--list")
 	if !strings.Contains(out, "📝 Tasks in") {
-		t.Errorf("expected emoji task list, got: %s", out)
+		t.Errorf("expected task list output, got: %s", out)
 	}
 }
 
