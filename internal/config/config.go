@@ -26,6 +26,7 @@ type Task struct {
 	Shell       string            `mapstructure:"shell" toml:"shell,omitempty"`
 	Description string            `mapstructure:"description" toml:"description,omitempty"`
 	Env         map[string]string `mapstructure:"env" toml:"env,omitempty"`
+	Cwd         string            `mapstructure:"cwd" toml:"cwd,omitempty"`
 	DependsOn   []string          `mapstructure:"depends_on" toml:"depends_on,omitempty"`
 }
 
@@ -82,6 +83,10 @@ func (t *Task) fromAny(v any) error {
 					return fmt.Errorf("env %q must be a string, got %T", k, v)
 				}
 			}
+		}
+		// cwd
+		if cwd, ok := val["cwd"].(string); ok {
+			t.Cwd = cwd
 		}
 		// args (optional extra args)
 		if argsRaw, ok := val["args"].([]any); ok {

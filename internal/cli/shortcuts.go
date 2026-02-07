@@ -15,16 +15,6 @@ var syncCmd = &cobra.Command{
 	},
 }
 
-// checkCmd (top-level): shortcut for `rig tools check` (aka `tools sync --check`)
-var checkCmd = &cobra.Command{
-	Use:     "check",
-	Aliases: []string{"status"},
-	Short:   "Verify tools are in sync without installing",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return toolsCheckCmd.RunE(toolsCheckCmd, args)
-	},
-}
-
 // outdatedCmd (top-level): shortcut for `rig tools outdated`
 var outdatedCmd = &cobra.Command{
 	Use:   "outdated",
@@ -40,11 +30,8 @@ func init() {
 	syncCmd.Flags().BoolVar(&toolsCheckJSON, "json", false, "use with --check to print machine-readable JSON summary")
 	syncCmd.Flags().BoolVar(&toolsOffline, "offline", false, "do not download modules (sets GOPROXY=off, GOSUMDB=off)")
 
-	checkCmd.Flags().BoolVar(&toolsCheckJSON, "json", false, "print machine-readable JSON summary")
-
 	outdatedCmd.Flags().BoolVar(&outdatedJSON, "json", false, "print machine-readable JSON status")
 
 	rootCmd.AddCommand(syncCmd)
-	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(outdatedCmd)
 }

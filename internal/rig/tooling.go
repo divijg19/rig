@@ -1,45 +1,73 @@
 package rig
 
 import (
+	"path"
 	"regexp"
 	"strings"
 )
 
-// ToolShortNameMap maps commonly used tool short names to their module paths.
-var ToolShortNameMap = map[string]string{
-	"golangci-lint": "github.com/golangci/golangci-lint/cmd/golangci-lint",
-	"mockery":       "github.com/vektra/mockery/v2",
-	"staticcheck":   "honnef.co/go/tools/cmd/staticcheck",
-	"revive":        "github.com/mgechev/revive",
-	"air":           "github.com/cosmtrek/air",
-	"reflex":        "github.com/cespare/reflex",
-	// Common extras
-	"dlv":       "github.com/go-delve/delve/cmd/dlv",
-	"gotestsum": "gotest.tools/gotestsum",
-	"gci":       "github.com/daixiang0/gci",
-	"gofumpt":   "mvdan.cc/gofumpt",
+// ToolIdentity splits a tool into:
+// - Module: used for `go list -m` resolution (must be taggable)
+// - InstallPath: used for `go install`
+// - Bin: resulting binary name in .rig/bin
+type ToolIdentity struct {
+	Module      string
+	InstallPath string
+	Bin         string
 }
 
-// ResolveModuleAndBin takes a tool identifier (short name or module path)
-// and returns the canonical module path and the expected binary name.
-// Examples:
+// ToolShortNameMap maps commonly used tool short names to their identities.
+var ToolShortNameMap = map[string]ToolIdentity{
+	"golangci-lint": {Module: "github.com/golangci/golangci-lint", InstallPath: "github.com/golangci/golangci-lint/cmd/golangci-lint", Bin: "golangci-lint"},
+	"mockery":       {Module: "github.com/vektra/mockery/v2", InstallPath: "github.com/vektra/mockery/v2", Bin: "mockery"},
+	"staticcheck":   {Module: "honnef.co/go/tools", InstallPath: "honnef.co/go/tools/cmd/staticcheck", Bin: "staticcheck"},
+	"revive":        {Module: "github.com/mgechev/revive", InstallPath: "github.com/mgechev/revive", Bin: "revive"},
+	"air":           {Module: "github.com/cosmtrek/air", InstallPath: "github.com/cosmtrek/air", Bin: "air"},
+	"reflex":        {Module: "github.com/cespare/reflex", InstallPath: "github.com/cespare/reflex", Bin: "reflex"},
+	// Common extras
+	"dlv":       {Module: "github.com/go-delve/delve", InstallPath: "github.com/go-delve/delve/cmd/dlv", Bin: "dlv"},
+	"gotestsum": {Module: "gotest.tools/gotestsum", InstallPath: "gotest.tools/gotestsum", Bin: "gotestsum"},
+	"gci":       {Module: "github.com/daixiang0/gci", InstallPath: "github.com/daixiang0/gci", Bin: "gci"},
+	"gofumpt":   {Module: "mvdan.cc/gofumpt", InstallPath: "mvdan.cc/gofumpt", Bin: "gofumpt"},
+}
+
+// ResolveToolIdentity resolves a tool identifier (short name or module path) into a ToolIdentity.
 //
-//	"mockery" => ("github.com/vektra/mockery/v2", "mockery")
-//	"github.com/vektra/mockery/v2" => ("github.com/vektra/mockery/v2", "mockery")
-//	"golangci-lint" => ("github.com/golangci/golangci-lint/cmd/golangci-lint", "golangci-lint")
+// If the tool was specified by a known short name, the identity is explicit.
+// Otherwise, Module and InstallPath are assumed to be the provided value.
+func ResolveToolIdentity(name string) ToolIdentity {
+	name = strings.TrimSpace(name)
+	if id, ok := ToolShortNameMap[name]; ok {
+		return id
+	}
+	bin := inferBinFromInstallPath(name)
+	return ToolIdentity{Module: name, InstallPath: name, Bin: bin}
+}
+
+func inferBinFromInstallPath(installPath string) string {
+	installPath = strings.TrimSpace(installPath)
+	if installPath == "" {
+		return ""
+	}
+	base := path.Base(installPath)
+	// If the last segment looks like a Go major-version suffix (v2, v3, ...), use the previous segment.
+	if majorSuffixRE.MatchString(base) {
+		dir := path.Dir(installPath)
+		prev := path.Base(dir)
+		if prev != "." && prev != "/" && prev != "" {
+			return prev
+		}
+	}
+	return base
+}
+
+var majorSuffixRE = regexp.MustCompile(`^v[0-9]+$`)
+
+// ResolveModuleAndBin is a compatibility wrapper for older callers.
+// Prefer ResolveToolIdentity.
 func ResolveModuleAndBin(name string) (module string, bin string) {
-	module = name
-	// If the tool was specified by a known short name, keep the binary name as the short name.
-	// This avoids incorrect binaries like "v2" for modules ending in /v2.
-	if mapped, ok := ToolShortNameMap[name]; ok {
-		module = mapped
-		return module, name
-	}
-	bin = name
-	if i := strings.LastIndex(module, "/"); i >= 0 {
-		bin = module[i+1:]
-	}
-	return module, bin
+	id := ResolveToolIdentity(name)
+	return id.InstallPath, id.Bin
 }
 
 // NormalizeSemver removes a leading 'v' from a version string for comparison.

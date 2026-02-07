@@ -26,17 +26,18 @@ const LockSchema0 = 0
 // Notes:
 //   - requested and resolved are intentionally opaque strings; they are meant to be
 //     human-inspectable and stable for diffs.
-//   - kind is currently "go".
+//   - kind is currently "go-binary" for installable tools.
 //
 // TOML layout:
 //
 //	schema = 0
 //
 //	[[tools]]
-//	kind = "go"
+//	kind = "go-binary"
 //	requested = "golangci-lint@1.62.0"
-//	resolved = "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.0"
-//	module = "github.com/golangci/golangci-lint/cmd/golangci-lint"
+//	resolved = "github.com/golangci/golangci-lint@v1.62.0"
+//	module = "github.com/golangci/golangci-lint"
+//	bin = "golangci-lint"
 //	checksum = "h1:..." # optional
 //
 // (No comments are generated in the lock file.)
@@ -46,13 +47,33 @@ type LockedTool struct {
 	Resolved  string `toml:"resolved"`
 
 	Module   string `toml:"module,omitempty"`
+	Bin      string `toml:"bin,omitempty"`
 	URL      string `toml:"url,omitempty"`
 	Checksum string `toml:"checksum,omitempty"`
 }
 
+// GoToolchainLock captures the Go toolchain requirement for this repo.
+//
+// TOML layout (schema = 0):
+//
+//	[toolchain.go]
+//	kind = "go-toolchain"
+//	requested = "1.22.0"
+//	detected = "1.22.0"
+type GoToolchainLock struct {
+	Kind      string `toml:"kind"`
+	Requested string `toml:"requested"`
+	Detected  string `toml:"detected"`
+}
+
+type ToolchainLock struct {
+	Go *GoToolchainLock `toml:"go,omitempty"`
+}
+
 type Lockfile struct {
-	Schema int          `toml:"schema"`
-	Tools  []LockedTool `toml:"tools"`
+	Schema    int            `toml:"schema"`
+	Toolchain *ToolchainLock `toml:"toolchain,omitempty"`
+	Tools     []LockedTool   `toml:"tools"`
 }
 
 func (t LockedTool) validate() error {
@@ -74,6 +95,21 @@ func (t LockedTool) validate() error {
 func ValidateLockfile(l Lockfile) error {
 	if l.Schema != LockSchema0 {
 		return fmt.Errorf("unsupported rig.lock schema %d", l.Schema)
+	}
+	if l.Toolchain != nil && l.Toolchain.Go != nil {
+		gt := l.Toolchain.Go
+		if strings.TrimSpace(gt.Kind) == "" {
+			return errors.New("toolchain.go.kind is required")
+		}
+		if strings.TrimSpace(gt.Kind) != "go-toolchain" {
+			return fmt.Errorf("toolchain.go.kind must be %q", "go-toolchain")
+		}
+		if strings.TrimSpace(gt.Requested) == "" {
+			return errors.New("toolchain.go.requested is required")
+		}
+		if strings.TrimSpace(gt.Detected) == "" {
+			return errors.New("toolchain.go.detected is required")
+		}
 	}
 	for i, t := range l.Tools {
 		if err := t.validate(); err != nil {
@@ -113,6 +149,15 @@ func MarshalLockfile(l Lockfile) ([]byte, error) {
 
 	var buf bytes.Buffer
 	buf.WriteString("schema = 0\n")
+
+	if l.Toolchain != nil && l.Toolchain.Go != nil {
+		buf.WriteString("\n")
+		buf.WriteString("[toolchain.go]\n")
+		writeTOMLKV(&buf, "kind", l.Toolchain.Go.Kind)
+		writeTOMLKV(&buf, "requested", l.Toolchain.Go.Requested)
+		writeTOMLKV(&buf, "detected", l.Toolchain.Go.Detected)
+	}
+
 	if len(tools) > 0 {
 		buf.WriteString("\n")
 	}
@@ -126,6 +171,9 @@ func MarshalLockfile(l Lockfile) ([]byte, error) {
 			writeTOMLKV(&buf, "module", t.Module)
 		} else if t.URL != "" {
 			writeTOMLKV(&buf, "url", t.URL)
+		}
+		if t.Bin != "" {
+			writeTOMLKV(&buf, "bin", t.Bin)
 		}
 		if t.Checksum != "" {
 			writeTOMLKV(&buf, "checksum", t.Checksum)
