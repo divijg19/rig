@@ -111,7 +111,7 @@ func TestSyncCheckJSONWhenInSyncPrintsEmptySummary(t *testing.T) {
 		t.Fatalf("write fake binary: %v", err)
 	}
 	// Deterministic rig.lock matching rig.toml.
-	rigLock := "schema = 0\n\n[[tools]]\nkind = \"go\"\nrequested = \"mockery@v2.46.0\"\nresolved = \"github.com/vektra/mockery/v2@v2.46.0\"\nmodule = \"github.com/vektra/mockery/v2\"\n"
+	rigLock := "schema = 0\n\n[[tools]]\nkind = \"go-binary\"\nrequested = \"mockery@v2.46.0\"\nresolved = \"github.com/vektra/mockery/v2@v2.46.0\"\nmodule = \"github.com/vektra/mockery/v2\"\nbin = \"mockery\"\n"
 	if err := os.WriteFile(filepath.Join(dir, "rig.lock"), []byte(rigLock), 0o644); err != nil {
 		t.Fatalf("write rig.lock: %v", err)
 	}

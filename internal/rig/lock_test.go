@@ -11,16 +11,18 @@ func TestMarshalLockfileDeterministicOrderingAndFields(t *testing.T) {
 		Schema: LockSchema0,
 		Tools: []LockedTool{
 			{
-				Kind:      "go",
+				Kind:      "go-binary",
 				Requested: "zeta@latest",
 				Resolved:  "example.com/zeta@v1.0.0",
 				Module:    "example.com/zeta",
+				Bin:       "zeta",
 			},
 			{
-				Kind:      "go",
+				Kind:      "go-binary",
 				Requested: "aardvark@v1.2.3",
 				Resolved:  "example.com/aardvark@v1.2.3",
 				Module:    "example.com/aardvark",
+				Bin:       "aardvark",
 				Checksum:  "h1:abc",
 			},
 		},
@@ -56,10 +58,11 @@ func TestMarshalLockfileDeterministicOrderingAndFields(t *testing.T) {
 	}
 	aardvarkBlock := out[aardvarkBlockStart:]
 	wantOrder := []string{
-		"kind = \"go\"\n",
+		"kind = \"go-binary\"\n",
 		"requested = \"aardvark@v1.2.3\"\n",
 		"resolved = \"example.com/aardvark@v1.2.3\"\n",
 		"module = \"example.com/aardvark\"\n",
+		"bin = \"aardvark\"\n",
 		"checksum = \"h1:abc\"\n",
 	}
 	pos := 0
@@ -74,10 +77,11 @@ func TestMarshalLockfileDeterministicOrderingAndFields(t *testing.T) {
 
 func TestReadLockfileRoundTrip(t *testing.T) {
 	l := Lockfile{Schema: LockSchema0, Tools: []LockedTool{{
-		Kind:      "go",
+		Kind:      "go-binary",
 		Requested: "mockery@latest",
 		Resolved:  "github.com/vektra/mockery/v2@v2.46.0",
 		Module:    "github.com/vektra/mockery/v2",
+		Bin:       "mockery",
 	}}}
 
 	b, err := MarshalLockfile(l)

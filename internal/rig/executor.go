@@ -14,6 +14,9 @@ type ExecOptions struct {
 	Dir string
 	// Env allows adding/overriding environment variables (KEY=VALUE form).
 	Env []string
+	// EnvExact, when true, uses Env as the full environment (no inheritance).
+	// When false (default), Env is appended to the current process environment.
+	EnvExact bool
 }
 
 // ExecuteShell runs a shell command string via the platform shell, streaming stdio.
@@ -28,7 +31,9 @@ func ExecuteShell(command string, opts ExecOptions) error {
 	if opts.Dir != "" {
 		cmd.Dir = opts.Dir
 	}
-	if len(opts.Env) > 0 {
+	if opts.EnvExact {
+		cmd.Env = opts.Env
+	} else if len(opts.Env) > 0 {
 		cmd.Env = append(os.Environ(), opts.Env...)
 	}
 	cmd.Stdout = os.Stdout
@@ -56,7 +61,9 @@ func ExecuteShellWith(shell, command string, opts ExecOptions) error {
 	if opts.Dir != "" {
 		cmd.Dir = opts.Dir
 	}
-	if len(opts.Env) > 0 {
+	if opts.EnvExact {
+		cmd.Env = opts.Env
+	} else if len(opts.Env) > 0 {
 		cmd.Env = append(os.Environ(), opts.Env...)
 	}
 	cmd.Stdout = os.Stdout
@@ -71,7 +78,9 @@ func Execute(name string, args []string, opts ExecOptions) error {
 	if opts.Dir != "" {
 		cmd.Dir = opts.Dir
 	}
-	if len(opts.Env) > 0 {
+	if opts.EnvExact {
+		cmd.Env = opts.Env
+	} else if len(opts.Env) > 0 {
 		cmd.Env = append(os.Environ(), opts.Env...)
 	}
 	cmd.Stdout = os.Stdout

@@ -39,23 +39,26 @@ func ResolveLockedTools(tools map[string]string, workDir string, env []string) (
 			return nil, fmt.Errorf("tool %q: empty version is not allowed (use an explicit version or \"latest\")", name)
 		}
 		normalized := EnsureSemverPrefixV(reqVer)
-		module, _ := ResolveModuleAndBin(name)
-		resolvedVer, sum, err := resolveGoModuleVersion(module, normalized, workDir, env)
+		id := ResolveToolIdentity(name)
+		resolvedVer, sum, err := goListModuleVersion(id.Module, normalized, workDir, env)
 		if err != nil {
-			return nil, fmt.Errorf("resolve %s@%s: %w", module, normalized, err)
+			return nil, fmt.Errorf("resolve %s@%s: %w", id.Module, normalized, err)
 		}
 
 		lt := LockedTool{
-			Kind:      "go",
+			Kind:      "go-binary",
 			Requested: fmt.Sprintf("%s@%s", name, reqVer),
-			Resolved:  fmt.Sprintf("%s@%s", module, resolvedVer),
-			Module:    module,
+			Resolved:  fmt.Sprintf("%s@%s", id.Module, resolvedVer),
+			Module:    id.Module,
+			Bin:       id.Bin,
 			Checksum:  strings.TrimSpace(sum),
 		}
 		locked = append(locked, lt)
 	}
 	return locked, nil
 }
+
+var goListModuleVersion = resolveGoModuleVersion
 
 func resolveGoModuleVersion(module, version, workDir string, env []string) (resolvedVersion string, sum string, err error) {
 	target := module + "@" + version

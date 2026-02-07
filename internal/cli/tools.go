@@ -27,7 +27,7 @@ var (
 var toolsCmd = &cobra.Command{
 	Use:     "tools",
 	Short:   "Manage project tools",
-	Long:    "Manage project tools defined in [tools] section of rig.toml. Also available via shortcuts: 'rig sync', 'rig check', 'rig outdated'.",
+	Long:    "Manage project tools defined in [tools] section of rig.toml. Also available via shortcuts: 'rig sync', 'rig outdated'.",
 	Aliases: []string{"t"},
 }
 
@@ -54,14 +54,14 @@ var toolsCheckCmd = &cobra.Command{
 			if toolsCheckJSON {
 				// Emit an empty diff JSON for CI (mirrors sync --check --json)
 				payload := struct {
-					Status  []ToolStatusRow `json:"status"`
+					Status  []core.ToolStatusRow `json:"status"`
 					Summary struct {
 						Missing    int      `json:"missing"`
 						Mismatched int      `json:"mismatched"`
 						Extra      int      `json:"extra"`
 						Extras     []string `json:"extras"`
 					} `json:"summary"`
-				}{Status: []ToolStatusRow{}}
+				}{Status: []core.ToolStatusRow{}}
 				b, err := stdjson.MarshalIndent(payload, "", "  ")
 				if err != nil {
 					return err
@@ -106,19 +106,21 @@ var toolsSyncCmd = &cobra.Command{
 
 		// Merge conf.Tools and extraTools
 		tools := mergeTools(conf.Tools, extraTools)
+		goReqRaw := tools["go"]
+		toolsNoGo := stripGoToolchain(tools)
 
-		if len(tools) == 0 {
+		if len(toolsNoGo) == 0 && strings.TrimSpace(goReqRaw) == "" {
 			if toolsCheck && toolsCheckJSON {
 				// Emit an empty diff JSON for CI
 				payload := struct {
-					Status  []ToolStatusRow `json:"status"`
+					Status  []core.ToolStatusRow `json:"status"`
 					Summary struct {
 						Missing    int      `json:"missing"`
 						Mismatched int      `json:"mismatched"`
 						Extra      int      `json:"extra"`
 						Extras     []string `json:"extras"`
 					} `json:"summary"`
-				}{Status: []ToolStatusRow{}}
+				}{Status: []core.ToolStatusRow{}}
 				b, err := stdjson.MarshalIndent(payload, "", "  ")
 				if err != nil {
 					return err
@@ -136,6 +138,23 @@ var toolsSyncCmd = &cobra.Command{
 
 		fmt.Printf("🔧 Syncing tools from %s\n", path)
 
+		// Validate Go toolchain requirement (tools.go) if present.
+		var toolchain *core.ToolchainLock
+		if strings.TrimSpace(goReqRaw) != "" {
+			normReq, err := core.NormalizeGoToolchainRequested(goReqRaw)
+			if err != nil {
+				return err
+			}
+			detected, err := core.DetectGoToolchainVersion(filepath.Dir(path), nil)
+			if err != nil {
+				return err
+			}
+			if normReq != "latest" && strings.TrimSpace(detected) != strings.TrimSpace(normReq) {
+				return fmt.Errorf("go toolchain mismatch: have %q, want %q", detected, normReq)
+			}
+			toolchain = &core.ToolchainLock{Go: &core.GoToolchainLock{Kind: "go-toolchain", Requested: normReq, Detected: detected}}
+		}
+
 		// Ensure local bin dir exists and prepare env with GOBIN and PATH
 		binDir := localBinDirFor(path)
 		if err := os.MkdirAll(binDir, 0o755); err != nil {
@@ -145,7 +164,7 @@ var toolsSyncCmd = &cobra.Command{
 
 		// Resolve tools into a deterministic rig.lock representation.
 		// This enables offline installs/checks and ensures sync is reproducible.
-		lockedTools, err := core.ResolveLockedTools(tools, filepath.Dir(path), env)
+		lockedTools, err := core.ResolveLockedTools(toolsNoGo, filepath.Dir(path), env)
 		if err != nil {
 			return err
 		}
@@ -171,11 +190,19 @@ var toolsSyncCmd = &cobra.Command{
 				defer wg.Done()
 				sem <- struct{}{}
 				defer func() { <-sem }()
-				toolName, _, _ := parseRequested(lt.Requested)
-				module, resolvedVer := splitResolved(lt.Resolved)
-				_, bin := core.ResolveModuleAndBin(toolName)
-				moduleWithVer := module + "@" + resolvedVer
-				err := execCommandSilentEnv("go", []string{"install", moduleWithVer}, env)
+				toolName, _, perr := core.ParseRequested(lt.Requested)
+				if perr != nil {
+					results[i] = result{name: lt.Requested, err: perr}
+					return
+				}
+				_, resolvedVer := core.SplitResolved(lt.Resolved)
+				id := core.ResolveToolIdentity(toolName)
+				installWithVer := id.InstallPath + "@" + resolvedVer
+				err := execCommandSilentEnv("go", []string{"install", installWithVer}, env)
+				bin := lt.Bin
+				if strings.TrimSpace(bin) == "" {
+					bin = id.Bin
+				}
 				results[i] = result{name: lt.Requested, bin: bin, ver: resolvedVer, err: err}
 			}()
 		}
@@ -189,7 +216,7 @@ var toolsSyncCmd = &cobra.Command{
 
 		// Only write lock files after successful installs.
 		// This prevents partial or misleading lockfile updates.
-		rigLock := core.Lockfile{Schema: core.LockSchema0, Tools: lockedTools}
+		rigLock := core.Lockfile{Schema: core.LockSchema0, Toolchain: toolchain, Tools: lockedTools}
 		rigLockPath := rigLockPathFor(path)
 		if err := core.WriteLockfile(rigLockPath, rigLock); err != nil {
 			return fmt.Errorf("write rig.lock: %w", err)
@@ -294,7 +321,7 @@ func checkToolsSync(tools map[string]string, configPath string) error {
 	if err != nil {
 		if toolsCheckJSON {
 			payload := struct {
-				Status  []ToolStatusRow `json:"status"`
+				Status  []core.ToolStatusRow `json:"status"`
 				Summary struct {
 					Missing    int      `json:"missing"`
 					Mismatched int      `json:"mismatched"`
@@ -302,7 +329,7 @@ func checkToolsSync(tools map[string]string, configPath string) error {
 					Extras     []string `json:"extras"`
 					Error      string   `json:"error"`
 				} `json:"summary"`
-			}{Status: []ToolStatusRow{}}
+			}{Status: []core.ToolStatusRow{}}
 			payload.Summary.Error = fmt.Sprintf("rig.lock missing or unreadable: %v", err)
 			b, jerr := stdjson.MarshalIndent(payload, "", "  ")
 			if jerr != nil {
@@ -312,10 +339,10 @@ func checkToolsSync(tools map[string]string, configPath string) error {
 		}
 		return fmt.Errorf("rig.lock missing or unreadable (%s); run 'rig tools sync' to generate it", lockPath)
 	}
-	if err := lockMatchesTools(lock, tools); err != nil {
+	if err := core.LockMatchesTools(lock, tools); err != nil {
 		if toolsCheckJSON {
 			payload := struct {
-				Status  []ToolStatusRow `json:"status"`
+				Status  []core.ToolStatusRow `json:"status"`
 				Summary struct {
 					Missing    int      `json:"missing"`
 					Mismatched int      `json:"mismatched"`
@@ -323,7 +350,7 @@ func checkToolsSync(tools map[string]string, configPath string) error {
 					Extras     []string `json:"extras"`
 					Error      string   `json:"error"`
 				} `json:"summary"`
-			}{Status: []ToolStatusRow{}}
+			}{Status: []core.ToolStatusRow{}}
 			payload.Summary.Error = err.Error()
 			b, jerr := stdjson.MarshalIndent(payload, "", "  ")
 			if jerr != nil {
@@ -337,41 +364,42 @@ func checkToolsSync(tools map[string]string, configPath string) error {
 	if !toolsCheckJSON {
 		fmt.Printf("🔍 Checking tools status in %s:\n", configPath)
 	}
-	rows, missing, mismatched := collectToolStatusWithLock(tools, lock, configPath)
-
-	// Detect extra binaries present in .rig/bin that aren't declared in tools
-	var extras []string
-	binDir := localBinDirFor(configPath)
-	if entries, err := os.ReadDir(binDir); err == nil {
-		declaredBins := map[string]struct{}{}
-		for k := range tools {
-			_, b := core.ResolveModuleAndBin(k)
-			declaredBins[b] = struct{}{}
+	rows, missing, mismatched, extras, err := core.CheckInstalledTools(tools, lock, configPath)
+	if err != nil {
+		return err
+	}
+	if goReqRaw := strings.TrimSpace(tools["go"]); goReqRaw != "" {
+		want, nerr := core.NormalizeGoToolchainRequested(goReqRaw)
+		have, herr := core.DetectGoToolchainVersion(filepath.Dir(configPath), nil)
+		status := "ok"
+		if nerr != nil {
+			status = "mismatch"
+			mismatched++
+			have = ""
+		} else if herr != nil {
+			status = "missing"
+			missing++
+			have = ""
+		} else if lock.Toolchain == nil || lock.Toolchain.Go == nil {
+			status = "missing"
+			missing++
+		} else if strings.TrimSpace(lock.Toolchain.Go.Detected) != strings.TrimSpace(have) {
+			status = "mismatch"
+			mismatched++
 		}
-		for _, ent := range entries {
-			if ent.IsDir() {
-				continue
-			}
-			name := ent.Name()
-			// Normalize for Windows
-			if runtime.GOOS == "windows" && strings.HasSuffix(strings.ToLower(name), ".exe") {
-				name = strings.TrimSuffix(name, ".exe")
-			}
-			if _, ok := declaredBins[name]; !ok {
-				if !toolsCheckJSON {
-					fmt.Printf("  ⚠️  extra binary not in manifest: %s\n", name)
-				}
-				extras = append(extras, name)
-			}
+		rows = append(rows, core.ToolStatusRow{Name: "go", Bin: "go", Want: want, Have: have, Status: status})
+	}
+	for _, name := range extras {
+		if !toolsCheckJSON {
+			fmt.Printf("  ⚠️  extra binary not in manifest: %s\n", name)
 		}
-		sort.Strings(extras)
 	}
 	extra := len(extras)
 
 	issues := missing + mismatched + extra
 	if toolsCheckJSON {
 		payload := struct {
-			Status  []ToolStatusRow `json:"status"`
+			Status  []core.ToolStatusRow `json:"status"`
 			Summary struct {
 				Missing    int      `json:"missing"`
 				Mismatched int      `json:"mismatched"`

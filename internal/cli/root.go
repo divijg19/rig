@@ -22,11 +22,18 @@ var rootCmd = &cobra.Command{
 	Short: "All-in-one project manager and task runner for Go",
 	Long: `rig enhances the Go toolchain with a single, declarative manifest (rig.toml).
 
+Command aliases are logical and resolved by invocation name (argv[0]):
+	• rir → rig run
+	• ric → rig check
+
+To use them as standalone commands, symlink or rename the rig binary.
+See: rig alias
+
 Features:
 	• Interactive Setup: 'rig init' with smart defaults (git config, Go version detection)
 	• Unified Manifest: [project], [tasks], [tools], [profile.*], and includes
 	• Structured Tasks: Support simple strings or advanced tables with env vars and dependencies
-	• Explicit Tool Management: 'rig tools sync' with manifest.lock for fast verification
+	• Explicit Tool Management: 'rig tools sync' with rig.lock for reproducible verification
 	• Reproducible Tooling: pins and installs tools into .rig/bin per project
 	• Friendly DX: emoji output, clear errors, and cross-platform commands
 
@@ -42,27 +49,11 @@ func Execute() {
 	}
 }
 
-// lsCmd offers a short alias for listing tasks (equivalent to `rig run --list`).
-var (
-	lsJSON bool
-)
-
-var lsCmd = &cobra.Command{
-	Use:     "ls",
-	Aliases: []string{"list"},
-	Short:   "List tasks",
-	Long:    "List tasks defined in rig.toml. Shortcuts: 'rig ls', 'rig run --list'.",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Delegate to runCmd behavior but force list mode
-		runList = true
-		runListJSON = lsJSON
-		return runCmd.RunE(runCmd, nil)
-	},
-}
-
-func init() {
-	lsCmd.Flags().BoolVarP(&lsJSON, "json", "j", false, "print machine-readable JSON")
-	rootCmd.AddCommand(lsCmd)
+// ExecuteWithArgs runs the CLI with an explicit argv (excluding argv[0]).
+// This is used by wrapper binaries that forward to a specific subcommand.
+func ExecuteWithArgs(args []string) {
+	rootCmd.SetArgs(args)
+	Execute()
 }
 
 func init() {
