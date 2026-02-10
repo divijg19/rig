@@ -45,25 +45,26 @@ license = "MIT"
 
 ## `[tasks]` — task schema
 
-Tasks are the primary developer-facing entrypoints. `rig` supports two task styles:
+Tasks are the primary developer-facing entrypoints.
+
+`rig` supports two task styles:
 
 1. Simple string (common):
-   - `test = "go test ./..."`
-2. Structured table for richer behavior:
+  - `test = "go test ./..."`
+2. Structured table (strict schema):
 
 Supported fields for a structured task table:
-- `command` (string): shell command to execute (run through the platform shell).
-- `argv` (array[string]): prefer this if you want to execute a binary directly without a shell.
-- `shell` (string): choose a specific shell (e.g. `bash`, `pwsh`, `sh`, `cmd`) for `command`.
-- `description` (string): human readable description used by `rig run --list --json`.
-- `env` (table): map of KEY=VALUE environment variables to set for the task.
-- `depends_on` (array[string]): list of other task names to run before this task.
+- `command` (string, required): command string to execute.
+- `env` (table[string], optional): map of KEY=VALUE environment variables.
+- `cwd` (string, optional): working directory, resolved relative to the `rig.toml` directory.
+- `depends_on` (array[string], optional): tasks to run before this task.
+
+v0.3 adds one special-case field:
+- `[tasks.dev].watch` (array[string], required for `rig dev`): file watch globs used by the watcher tool.
 
 Notes:
-- If `argv` is present, it takes precedence and `rig` will execute the binary directly (no shell).
-- If `command` is an array (TOML array), it will be interpreted as `argv`.
-- `args` (array) may be appended in some template helpers — prefer `argv` for direct execution.
-- `depends_on` values are validated and resolved in a deterministic topological order; cycles result in a helpful error.
+- `depends_on` values are validated and resolved in deterministic topological order; cycles error.
+- `rig run` and `rig dev` require `rig.lock` and will fail fast if it is missing.
 
 Examples:
 
@@ -72,15 +73,15 @@ Examples:
 command = "go build -o bin/server ./cmd/server"
 
 [tasks.dev]
-argv = ["reflex", "-r", "\\.go$", "--", "go", "run", "."]
-description = "Run the server with automatic rebuilds"
+command = "go run ."
+watch = ["**/*.go"]
 
 [tasks.release]
 command = "./scripts/release.sh"
 depends_on = ["build", "test"]
 ```
 
-Use `rig run <task>` to execute tasks and `rig run --list --json` to get a machine-readable list (useful for editors and CI).
+Use `rig run <task>` to execute tasks.
 
 ---
 

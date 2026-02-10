@@ -23,7 +23,7 @@ We believe developers shouldn't have to stitch together five different tools jus
 We believe that developer tools should be fast, intuitive, and a joy to use. A great Developer Experience (DX) is not a luxury; it is a core feature that enables higher productivity and better software.
 
 `rig` is **obsessed with DX** and provides an **All-in-One Environment**:
-*   **Batteries Included:** You shouldn't need a separate binary for hot-reloading, another for testing, and another for env vars. `rig dev` handles watching, rebuilding, and restarting natively.
+*   **Batteries Included:** You shouldn't need a separate binary for hot-reloading, another for testing, and another for env vars. `rig dev` drives a watcher-backed dev loop from `rig.toml` (v0.3 uses tool-backed watching, not a native watcher).
 *   **Speed as a Feature:** `rig` is written in Go. It starts instantly, caches aggressively (inspired by `uv`), and respects your time.
 *   **Unified Interface:** Whether you are testing (`rig test`), building (`rig build`), or running a one-off tool (`rig x`), the interface is consistent, pretty, and human-readable.
 

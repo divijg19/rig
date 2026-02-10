@@ -266,6 +266,65 @@ noop = "true"
 	}
 }
 
+func TestEntrypointRidMatchesRigDev(t *testing.T) {
+	work := t.TempDir()
+	writeFile(t, filepath.Join(work, "rig.toml"), `
+[tools]
+reflex = "latest"
+
+[tasks.dev]
+command = "go run ."
+watch = ["**/*.go"]
+`, 0o644)
+
+	binDir := t.TempDir()
+	paths := installEntrypoints(t, binDir)
+	rigBin := paths["rig"]
+	ridBin := paths["rid"]
+
+	cmd1 := exec.Command(rigBin, "dev")
+	cmd1.Dir = work
+	out1, err := cmd1.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected rig dev to fail without lock, got none. output=%s", out1)
+	}
+
+	cmd2 := exec.Command(ridBin)
+	cmd2.Dir = work
+	out2, err := cmd2.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected rid invocation to fail without lock, got none. output=%s", out2)
+	}
+	if strings.TrimSpace(string(out1)) != strings.TrimSpace(string(out2)) {
+		t.Fatalf("outputs differ\nrig dev: %q\nrid: %q", strings.TrimSpace(string(out1)), strings.TrimSpace(string(out2)))
+	}
+}
+
+func TestEntrypointRisMatchesRigStartStub(t *testing.T) {
+	work := t.TempDir()
+	binDir := t.TempDir()
+	paths := installEntrypoints(t, binDir)
+	rigBin := paths["rig"]
+	risBin := paths["ris"]
+
+	cmd1 := exec.Command(rigBin, "start")
+	cmd1.Dir = work
+	out1, err := cmd1.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected rig start to fail (stub), got none. output=%s", out1)
+	}
+
+	cmd2 := exec.Command(risBin)
+	cmd2.Dir = work
+	out2, err := cmd2.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected ris invocation to fail (stub), got none. output=%s", out2)
+	}
+	if strings.TrimSpace(string(out1)) != strings.TrimSpace(string(out2)) {
+		t.Fatalf("outputs differ\nrig start: %q\nris: %q", strings.TrimSpace(string(out1)), strings.TrimSpace(string(out2)))
+	}
+}
+
 func TestAliasCommandOutputIsStable(t *testing.T) {
 	work := t.TempDir()
 	binDir := t.TempDir()

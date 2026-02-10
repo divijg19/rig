@@ -29,9 +29,22 @@ curl -fsSL https://rig.sh/install | sh
 
 **Via Go Install**
 ```bash
-go install github.com/divijg19/rig@latest
+# Install the single main binary
+go install github.com/divijg19/rig/cmd/rig@v0.3.0
+
+# Or install all reserved entrypoints (rig/rir/ric/rid/ris)
+go install github.com/divijg19/rig/cmd/...@v0.3.0
 ```
 Ensure `$GOPATH/bin` is in your system's `PATH`.
+
+Aliases are invocation-name based. `rig` does not auto-create symlinks.
+If you want `rir`/`ric`/`rid`/`ris`, create them yourself:
+```bash
+ln -sf "$(command -v rig)" "$HOME/.local/bin/rir"
+ln -sf "$(command -v rig)" "$HOME/.local/bin/ric"
+ln -sf "$(command -v rig)" "$HOME/.local/bin/rid"
+ln -sf "$(command -v rig)" "$HOME/.local/bin/ris"
+```
 
 ---
 
@@ -45,6 +58,9 @@ rig init
 
 # install tools declared in [tools] (writes rig.lock + .rig/manifest.lock)
 rig sync
+
+# start the dev loop (requires rig.lock)
+rig dev
 
 # discover tasks
 rig run --list
@@ -63,16 +79,25 @@ github.com/vektra/mockery/v2 = "v2.46.0"
 
 ---
 
+## Upgrade notes (v0.2 → v0.3)
+
+- `rig dev` is now a first-class command (alias: `rid`). Configure it via `[tasks.dev]` with `command` + `watch`.
+- Alias model is finalized: one binary with invocation-name dispatch. See `rig alias`.
+
+---
+
 ## Command Reference
 
 | Command | Description |
 | :--- | :--- |
 | **`rig init`** | Generate a `rig.toml` (interactive or flags). |
 | **`rig run <task>`** | Run a task from `[tasks]` (aliases: `rig r`, `rig ls`). |
+| **`rig dev`** | Run the watcher-backed dev loop (alias: `rid`). |
+| **`rig status`** | Show current state (read-only). |
 | **`rig build`** | Compose and run `go build` using optional profiles. |
 | **`rig tools`** | Manage tools declared in `[tools]` (sync/check/outdated). |
 | **`rig sync`** | Shortcut for `rig tools sync`. |
-| **`rig check`** | Shortcut for `rig tools sync --check`. |
+| **`rig check`** | Verify `rig.lock` and `.rig/bin` tool parity (alias: `ric`). |
 | **`rig outdated`** | Shortcut for `rig tools outdated`. |
 | **`rig x`** | Run a tool ephemerally (installs into `.rig/bin` if needed). |
 | **`rig doctor`** | Verify local environment and toolchain sanity. |

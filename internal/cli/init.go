@@ -46,7 +46,7 @@ Supports monorepos via .rig/ includes.`,
   rig init            # defaults
   rig init -y         # non-interactive
   rig init -C ./app   # write manifest in subfolder
-  rig init --developer --monorepo --dev-watcher reflex
+	rig init --developer --monorepo --dev-watcher reflex
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Resolve target directory
@@ -149,7 +149,7 @@ Supports monorepos via .rig/ includes.`,
 				devWatcher = "reflex"
 			}
 		}
-		if !isValidOption(devWatcher, "none", "reflex", "air") {
+		if !isValidOption(devWatcher, "none", "reflex") {
 			return fmt.Errorf("invalid --dev-watcher: %s", devWatcher)
 		}
 
@@ -238,7 +238,7 @@ func init() {
 	initCmd.Flags().BoolVar(&initNoTools, "no-tools", false, "do not generate [tools] section")
 	initCmd.Flags().BoolVar(&initNoTasks, "no-tasks", false, "do not generate [tasks] section")
 	initCmd.Flags().StringSliceVar(&initProfiles, "profiles", nil, "profiles to create (comma-separated)")
-	initCmd.Flags().StringVar(&initDevWatcher, "dev-watcher", "", "dev watcher: none|reflex|air")
+	initCmd.Flags().StringVar(&initDevWatcher, "dev-watcher", "", "dev watcher: none|reflex")
 	initCmd.Flags().BoolVar(&initCI, "ci", false, "add a simple CI task")
 
 	// Add backward compatibility alias for DX flag
@@ -371,10 +371,9 @@ func buildTasksConfig(developerMode bool, watcher string, includeCI bool) string
 		builder.WriteString("lint = \"golangci-lint run ./...\"\n")
 		switch watcher {
 		case "reflex":
-			// Prefer argv-style for robust cross-platform execution
-			builder.WriteString("dev.argv = [\"reflex\", \"-r\", \\\"\\\\.go$\\\" , \"--\", \"go\", \"run\", \".\"]\n")
-		case "air":
-			builder.WriteString("dev = \"air\"\n")
+			builder.WriteString("\n[tasks.dev]\n")
+			builder.WriteString("command = \"go run .\"\n")
+			builder.WriteString("watch = [\"**/*.go\"]\n")
 		}
 	}
 	if includeCI {
@@ -399,8 +398,6 @@ func buildToolsConfig(developerMode bool, watcher string, goVersion string) stri
 		case "reflex":
 			// module path for generic go install
 			builder.WriteString("github.com/cespare/reflex = \"latest\"\n")
-		case "air":
-			builder.WriteString("github.com/cosmtrek/air = \"latest\"\n")
 		}
 	}
 	return builder.String()

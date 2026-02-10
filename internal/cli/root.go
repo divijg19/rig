@@ -25,6 +25,8 @@ var rootCmd = &cobra.Command{
 Command aliases are logical and resolved by invocation name (argv[0]):
 	• rir → rig run
 	• ric → rig check
+	• rid → rig dev
+	• ris → rig start (stub)
 
 To use them as standalone commands, symlink or rename the rig binary.
 See: rig alias
@@ -32,10 +34,10 @@ See: rig alias
 Features:
 	• Interactive Setup: 'rig init' with smart defaults (git config, Go version detection)
 	• Unified Manifest: [project], [tasks], [tools], [profile.*], and includes
-	• Structured Tasks: Support simple strings or advanced tables with env vars and dependencies
-	• Explicit Tool Management: 'rig tools sync' with rig.lock for reproducible verification
-	• Reproducible Tooling: pins and installs tools into .rig/bin per project
-	• Friendly DX: emoji output, clear errors, and cross-platform commands
+	• Strict Tasks: task values are either strings or tables with {command, env, cwd, depends_on}
+	• Reproducible Tooling: 'rig sync' writes rig.lock and installs tools into .rig/bin
+	• Daily Dev Loop: 'rig dev' runs a watcher-backed dev task (requires rig.lock)
+	• Lock-backed Execution: 'rig run' and 'rig check' require rig.lock and enforce tool parity
 
 Tip: run 'rig init' to create an interactive rig.toml, then 'rig tools sync' to install tools.`,
 }

@@ -130,7 +130,7 @@ func parseConfigBytes(b []byte) (cfg.Config, error) {
 func parseTasks(raw map[string]any) (cfg.TasksMap, error) {
 	out := make(cfg.TasksMap, len(raw))
 	for name, v := range raw {
-		t, err := parseTask(v)
+		t, err := parseTask(name, v)
 		if err != nil {
 			return nil, fmt.Errorf("task %q: %w", name, err)
 		}
@@ -139,7 +139,7 @@ func parseTasks(raw map[string]any) (cfg.TasksMap, error) {
 	return out, nil
 }
 
-func parseTask(v any) (cfg.Task, error) {
+func parseTask(name string, v any) (cfg.Task, error) {
 	switch val := v.(type) {
 	case string:
 		cmd := strings.TrimSpace(val)
@@ -154,8 +154,15 @@ func parseTask(v any) (cfg.Task, error) {
 			"cwd":        {},
 			"depends_on": {},
 		}
+		// v0.3: allow watch patterns only on the dev task.
+		if name == "dev" {
+			allowed["watch"] = struct{}{}
+		}
 		for k := range val {
 			if _, ok := allowed[k]; !ok {
+				if name == "dev" {
+					return cfg.Task{}, fmt.Errorf("unsupported field %q (allowed: command, watch, env, cwd, depends_on)", k)
+				}
 				return cfg.Task{}, fmt.Errorf("unsupported field %q (allowed: command, env, cwd, depends_on)", k)
 			}
 		}
@@ -217,7 +224,28 @@ func parseTask(v any) (cfg.Task, error) {
 			}
 		}
 
-		return cfg.Task{Command: cmd, Env: env, Cwd: cwd, DependsOn: deps}, nil
+		var watch []string
+		if name == "dev" {
+			if watchRaw, ok := val["watch"]; ok {
+				arr, ok := watchRaw.([]any)
+				if !ok {
+					return cfg.Task{}, fmt.Errorf("watch must be an array of strings, got %T", watchRaw)
+				}
+				for _, it := range arr {
+					s, ok := it.(string)
+					if !ok {
+						return cfg.Task{}, fmt.Errorf("watch items must be strings, got %T", it)
+					}
+					s = strings.TrimSpace(s)
+					if s == "" {
+						return cfg.Task{}, errors.New("watch items must be non-empty")
+					}
+					watch = append(watch, s)
+				}
+			}
+		}
+
+		return cfg.Task{Command: cmd, Watch: watch, Env: env, Cwd: cwd, DependsOn: deps}, nil
 	default:
 		return cfg.Task{}, fmt.Errorf("task must be string or table, got %T", v)
 	}

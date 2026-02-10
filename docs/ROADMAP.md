@@ -32,7 +32,7 @@ Our development is planned in phases, each with a clear theme and a goal to deli
 
 **Goal:** Deliver the "Bun DX" by transforming `rig` from a task runner into a true development environment with a lightning-fast feedback loop. This is the current focus.
 
-- [ ] **Native File Watching & Hot-Reloading (`rig dev`):** Implement a native, high-performance file watcher to drive `rig dev` and `rig test --watch`. This is the flagship feature.
+- [x] **Dev loop (`rig dev`):** Implement a tool-backed watcher driven by `[tasks.dev].watch` (v0.3). Native watcher and additional watch modes are future work.
 - [ ] **Polished Test Runner (`rig test`):** A dedicated, rich TUI for running and visualizing test results, inspired by `bun test`.
 - [ ] **Ephemeral Runner (`rig x`):** Implement the `npx`-style on-the-fly tool runner.
 - [ ] **Monorepo Support (`include` directive):** Enhance the configuration loader to support splitting `rig.toml` across multiple files.
