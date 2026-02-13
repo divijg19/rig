@@ -7,7 +7,7 @@ This guide shows the recommended way to install `rig` using the Go toolchain.
 Works on all platforms with Go installed:
 
 ```pwsh
-go install github.com/divijg19/rig@latest
+go install github.com/divijg19/rig/cmd/rig@latest
 ```
 
 ### PATH notes
@@ -25,7 +25,7 @@ export PATH="$HOME/go/bin:$PATH"
 
 ```pwsh
 rig --help
-rig ls -j
+rig run --list
 rig sync --check --json
 ```
 

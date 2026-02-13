@@ -16,6 +16,7 @@ func TestMarshalLockfileDeterministicOrderingAndFields(t *testing.T) {
 				Resolved:  "example.com/zeta@v1.0.0",
 				Module:    "example.com/zeta",
 				Bin:       "zeta",
+				SHA256:    "00",
 			},
 			{
 				Kind:      "go-binary",
@@ -24,6 +25,7 @@ func TestMarshalLockfileDeterministicOrderingAndFields(t *testing.T) {
 				Module:    "example.com/aardvark",
 				Bin:       "aardvark",
 				Checksum:  "h1:abc",
+				SHA256:    "11",
 			},
 		},
 	}
@@ -64,6 +66,7 @@ func TestMarshalLockfileDeterministicOrderingAndFields(t *testing.T) {
 		"module = \"example.com/aardvark\"\n",
 		"bin = \"aardvark\"\n",
 		"checksum = \"h1:abc\"\n",
+		"sha256 = \"11\"\n",
 	}
 	pos := 0
 	for _, needle := range wantOrder {
@@ -82,6 +85,7 @@ func TestReadLockfileRoundTrip(t *testing.T) {
 		Resolved:  "github.com/vektra/mockery/v2@v2.46.0",
 		Module:    "github.com/vektra/mockery/v2",
 		Bin:       "mockery",
+		SHA256:    "aa",
 	}}}
 
 	b, err := MarshalLockfile(l)

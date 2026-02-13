@@ -214,6 +214,25 @@ var toolsSyncCmd = &cobra.Command{
 			fmt.Printf("✅ %s %s installed\n", r.bin, r.ver)
 		}
 
+		// Compute and record binary integrity after successful installs.
+		for i := range lockedTools {
+			lt := lockedTools[i]
+			toolName, _, perr := core.ParseRequested(lt.Requested)
+			if perr != nil {
+				return perr
+			}
+			bin := strings.TrimSpace(lt.Bin)
+			if bin == "" {
+				bin = core.ResolveToolIdentity(toolName).Bin
+			}
+			binPath := core.ToolBinPath(path, bin)
+			sum, herr := core.ComputeFileSHA256(binPath)
+			if herr != nil {
+				return fmt.Errorf("compute sha256 for %s: %w", bin, herr)
+			}
+			lockedTools[i].SHA256 = sum
+		}
+
 		// Only write lock files after successful installs.
 		// This prevents partial or misleading lockfile updates.
 		rigLock := core.Lockfile{Schema: core.LockSchema0, Toolchain: toolchain, Tools: lockedTools}

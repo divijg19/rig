@@ -89,3 +89,8 @@ func checkGoAgainstLockIfRequired(tools map[string]string, lock Lockfile, config
 	}
 	return &GoStatusRow{Requested: goReq, Locked: lockedDetected, Have: have, Status: "ok"}, true
 }
+
+// CheckGoToolchainAgainstLock validates the Go toolchain requirement when tools.go is declared.
+func CheckGoToolchainAgainstLock(tools map[string]string, lock Lockfile, configPath string) (*GoStatusRow, bool) {
+	return checkGoAgainstLockIfRequired(tools, lock, configPath)
+}

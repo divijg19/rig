@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// ExecuteEntrypoint is the single bootstrap for all shipped binaries (rig/rir/ric/rid/ris).
-// It resolves intent from argv[0] and then runs the Cobra CLI.
+// ExecuteEntrypoint is the single bootstrap for the rig binary.
+// It resolves intent from argv[0] (optional user-created symlink/rename) and then runs the Cobra CLI.
 func ExecuteEntrypoint() {
 	rewriteArgsForInvocation()
 	Execute()

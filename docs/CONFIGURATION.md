@@ -55,6 +55,7 @@ Tasks are the primary developer-facing entrypoints.
 
 Supported fields for a structured task table:
 - `command` (string, required): command string to execute.
+- `description` (string, optional): human description shown by `rig run --list`.
 - `env` (table[string], optional): map of KEY=VALUE environment variables.
 - `cwd` (string, optional): working directory, resolved relative to the `rig.toml` directory.
 - `depends_on` (array[string], optional): tasks to run before this task.

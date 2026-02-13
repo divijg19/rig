@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -8,6 +9,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/divijg19/rig/internal/rig"
 )
 
 func TestComputeToolsHashDeterministic(t *testing.T) {
@@ -110,8 +113,12 @@ func TestSyncCheckJSONWhenInSyncPrintsEmptySummary(t *testing.T) {
 	if err := os.WriteFile(fakePath, []byte(fake), 0o755); err != nil {
 		t.Fatalf("write fake binary: %v", err)
 	}
+	sha, err := rig.ComputeFileSHA256(fakePath)
+	if err != nil {
+		t.Fatalf("hash fake binary: %v", err)
+	}
 	// Deterministic rig.lock matching rig.toml.
-	rigLock := "schema = 0\n\n[[tools]]\nkind = \"go-binary\"\nrequested = \"mockery@v2.46.0\"\nresolved = \"github.com/vektra/mockery/v2@v2.46.0\"\nmodule = \"github.com/vektra/mockery/v2\"\nbin = \"mockery\"\n"
+	rigLock := fmt.Sprintf("schema = 0\n\n[[tools]]\nkind = \"go-binary\"\nrequested = \"mockery@v2.46.0\"\nresolved = \"github.com/vektra/mockery/v2@v2.46.0\"\nmodule = \"github.com/vektra/mockery/v2\"\nbin = \"mockery\"\nsha256 = \"%s\"\n", sha)
 	if err := os.WriteFile(filepath.Join(dir, "rig.lock"), []byte(rigLock), 0o644); err != nil {
 		t.Fatalf("write rig.lock: %v", err)
 	}

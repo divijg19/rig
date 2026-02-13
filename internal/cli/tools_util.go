@@ -9,10 +9,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
-	"sync"
 
 	core "github.com/divijg19/rig/internal/rig"
 )
@@ -126,65 +124,49 @@ func stripGoToolchain(tools map[string]string) map[string]string {
 	return out
 }
 
-// collectToolStatus concurrently checks installed tool versions against the manifest.
+// collectToolStatus checks installed tool integrity against rig.lock.
 // It returns deterministic rows ordered by tool name, along with counts of missing and mismatched tools.
 func collectToolStatus(tools map[string]string, configPath string) ([]core.ToolStatusRow, int, int) {
-	tools = stripGoToolchain(tools)
-	if len(tools) == 0 {
-		return nil, 0, 0
-	}
-	env := envWithLocalBin(configPath, nil, false)
-	// Stable order of names
-	names := make([]string, 0, len(tools))
-	for n := range tools {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-
-	type rowRes struct {
-		idx int
-		row core.ToolStatusRow
-	}
-	outCh := make(chan rowRes, len(names))
-	sem := make(chan struct{}, max(1, runtime.NumCPU()))
-	var wg sync.WaitGroup
-
-	for i, name := range names {
-		i, name := i, name
-		ver := tools[name]
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
-			want := core.NormalizeToolVersion(ver)
-			_, bin := core.ResolveModuleAndBin(name)
-			binPath := core.ToolBinPath(configPath, bin)
-			out, _ := execCommandEnv(binPath, []string{"--version"}, env)
-			have := core.ParseVersionFromOutput(out)
-			status := "ok"
-			if have == "" {
-				status = "missing"
-			} else if want != "latest" && have != want {
-				status = "mismatch"
-			}
-			outCh <- rowRes{idx: i, row: core.ToolStatusRow{Name: name, Bin: bin, Want: want, Have: have, Status: status}}
-		}()
-	}
-	wg.Wait()
-	close(outCh)
-	rows := make([]core.ToolStatusRow, len(names))
-	var missing, mismatched int
-	for rr := range outCh {
-		rows[rr.idx] = rr.row
-	}
-	for _, r := range rows {
-		switch r.Status {
-		case "missing":
-			missing++
-		case "mismatch":
-			mismatched++
+	lockPath := rigLockPathFor(configPath)
+	lock, err := core.ReadLockfile(lockPath)
+	if err != nil {
+		// If rig.lock is missing/unreadable, treat all tools as mismatched for the purpose of outdated.
+		// The caller prints the error context.
+		tools = stripGoToolchain(tools)
+		if len(tools) == 0 {
+			return nil, 0, 0
 		}
+		names := make([]string, 0, len(tools))
+		for n := range tools {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		rows := make([]core.ToolStatusRow, 0, len(names))
+		for _, name := range names {
+			_, bin := core.ResolveModuleAndBin(name)
+			rows = append(rows, core.ToolStatusRow{Name: name, Bin: bin, Want: "", Have: "", Status: "mismatch"})
+		}
+		return rows, 0, len(rows)
+	}
+
+	rows, missing, mismatched, _, cerr := core.CheckInstalledTools(tools, lock, configPath)
+	if cerr != nil {
+		// Treat schema/consistency errors as a full mismatch.
+		tools = stripGoToolchain(tools)
+		if len(tools) == 0 {
+			return nil, 0, 0
+		}
+		names := make([]string, 0, len(tools))
+		for n := range tools {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		fallback := make([]core.ToolStatusRow, 0, len(names))
+		for _, name := range names {
+			_, bin := core.ResolveModuleAndBin(name)
+			fallback = append(fallback, core.ToolStatusRow{Name: name, Bin: bin, Want: "", Have: "", Status: "mismatch"})
+		}
+		return fallback, 0, len(fallback)
 	}
 	return rows, missing, mismatched
 }

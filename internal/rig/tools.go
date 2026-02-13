@@ -11,6 +11,14 @@ import (
 	"strings"
 )
 
+type ToolState string
+
+const (
+	ToolOK       ToolState = "ok"
+	ToolMissing  ToolState = "missing"
+	ToolMismatch ToolState = "mismatch"
+)
+
 // ToolStatusRow is a stable, machine-friendly representation of tool state.
 // It is used by v0.2 `rig check` (and by `rig run` preflight validation).
 //
@@ -31,12 +39,65 @@ func localBinDirForConfig(configPath string) string {
 	return filepath.Join(filepath.Dir(configPath), ".rig", "bin")
 }
 
+// Tool execution authority (v0.3 invariant):
+//
+//   - All rig-managed tools are installed, checked, and executed exclusively from .rig/bin.
+//   - Rig does not fall back to PATH, GOBIN, or GOPATH/bin for tool discovery or execution.
+//
+// Explicit exception:
+//   - The Go toolchain (`go`) is resolved from PATH and validated via `go version`.
+//     Rig never installs Go.
+
 func ToolBinPath(configPath string, bin string) string {
 	name := bin
 	if runtime.GOOS == "windows" && !strings.HasSuffix(strings.ToLower(name), ".exe") {
 		name += ".exe"
 	}
 	return filepath.Join(localBinDirForConfig(configPath), name)
+}
+
+func normalizeExeNameForMatch(name string) string {
+	name = strings.TrimSpace(name)
+	if runtime.GOOS == "windows" && strings.HasSuffix(strings.ToLower(name), ".exe") {
+		return strings.TrimSuffix(name, ".exe")
+	}
+	return name
+}
+
+// ResolveManagedToolExecutable returns an absolute path in .rig/bin if argv0 refers to a
+// tool declared in rig.lock. If argv0 is not a managed tool binary, ok=false.
+//
+// This is the only supported way for rig to run managed tools in v0.3.
+func ResolveManagedToolExecutable(configPath string, lock Lockfile, argv0 string) (path string, ok bool, err error) {
+	argv0 = strings.TrimSpace(argv0)
+	if argv0 == "" {
+		return "", false, nil
+	}
+	// Only bare command names are eligible. Paths are treated as explicit user input.
+	if filepath.IsAbs(argv0) || strings.ContainsRune(argv0, os.PathSeparator) {
+		return "", false, nil
+	}
+
+	want := normalizeExeNameForMatch(argv0)
+	for _, lt := range lock.Tools {
+		toolName, _, perr := ParseRequested(lt.Requested)
+		if perr != nil {
+			return "", false, perr
+		}
+		bin := strings.TrimSpace(lt.Bin)
+		if bin == "" {
+			bin = ResolveToolIdentity(toolName).Bin
+		}
+		if normalizeExeNameForMatch(bin) != want {
+			continue
+		}
+		binPath := ToolBinPath(configPath, bin)
+		if err := ensureExecutable(binPath); err != nil {
+			return "", true, fmt.Errorf("%s not installed in .rig/bin (run 'rig sync'): %w", bin, err)
+		}
+		return binPath, true, nil
+	}
+	return "", false, nil
 }
 
 func execCapture(name string, args []string, dir string, env []string) (string, error) {
@@ -214,18 +275,24 @@ func CheckInstalledTools(tools map[string]string, lock Lockfile, configPath stri
 		declaredBins[bin] = struct{}{}
 
 		binPath := ToolBinPath(configPath, bin)
-		out, _ := execCapture(binPath, []string{"--version"}, filepath.Dir(configPath), nil)
-		have := ParseVersionFromOutput(out)
-
-		status := "ok"
-		if have == "" {
-			status = "missing"
+		status := ToolOK
+		have := ""
+		// Missing is strictly about presence in .rig/bin (no PATH fallback).
+		if err := ensureExecutable(binPath); err != nil {
+			status = ToolMissing
 			missing++
-		} else if want != "latest" && have != want {
-			status = "mismatch"
-			mismatched++
+		} else {
+			expected := strings.TrimSpace(lt.SHA256)
+			got, herr := ComputeFileSHA256(binPath)
+			if herr != nil {
+				status = ToolMismatch
+				mismatched++
+			} else if expected == "" || got != expected {
+				status = ToolMismatch
+				mismatched++
+			}
 		}
-		rows = append(rows, ToolStatusRow{Name: name, Bin: bin, Want: want, Have: have, Status: status})
+		rows = append(rows, ToolStatusRow{Name: name, Bin: bin, Want: want, Have: have, Status: string(status)})
 	}
 
 	binDir := localBinDirForConfig(configPath)

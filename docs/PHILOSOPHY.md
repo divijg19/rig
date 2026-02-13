@@ -15,7 +15,7 @@ We believe that a project that works "on my machine" but fails in CI is a broken
 
 `rig` solves this with **Strict Determinism**:
 *   **Single Source of Truth:** Your `rig.toml` defines everything—metadata, scripts, and toolchain versions.
-*   **Hermetic Tooling:** `rig` never touches your global `$PATH`. Tools (like linters and generators) are sandboxed per-project and version-locked in `rig.lock`.
+*   **Hermetic Tooling:** `rig` never mutates your shell's global `$PATH`. Tools (like linters and generators) are sandboxed per-project and version-locked in `rig.lock`.
 *   **Structure:** Like Cargo, `rig` provides opinionated scaffolding (`rig new`) to standardize project layouts, ending the debate on where folders should go.
 
 #### 2. Bun’s DX: The "Virtual Runtime" Experience

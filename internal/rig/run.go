@@ -68,9 +68,22 @@ func Run(startDir string, taskName string, passthrough []string) error {
 		}
 
 		env := buildEnv(confPath, t.Env)
-		exe, err := resolveExecutable(argv[0], cwd, env)
-		if err != nil {
-			return fmt.Errorf("task %q: %w", name, err)
+
+		exe := ""
+		// Managed tools are executed exclusively from .rig/bin (no PATH fallback).
+		// Explicit exception: `go` is resolved from PATH (toolchain), and is never installed by rig.
+		if argv[0] != "go" {
+			if p, ok, rerr := ResolveManagedToolExecutable(confPath, lock, argv[0]); rerr != nil {
+				return fmt.Errorf("task %q: %w", name, rerr)
+			} else if ok {
+				exe = p
+			}
+		}
+		if exe == "" {
+			exe, err = resolveExecutable(argv[0], cwd, env)
+			if err != nil {
+				return fmt.Errorf("task %q: %w", name, err)
+			}
 		}
 
 		if err := Execute(exe, argv[1:], ExecOptions{Dir: cwd, Env: env, EnvExact: true}); err != nil {

@@ -25,12 +25,11 @@ var (
 // Usage: rig x <tool[@version] | module[@version]> [-- args]
 var xCmd = &cobra.Command{
 	Use:   "x <tool[@version]|module[@version]> [-- args]",
-	Short: "Run a tool ephemerally (installs if needed)",
-	Long:  "Run a tool ephemerally by name or module path, optionally with @version. Installs into .rig/bin if missing or mismatched, then executes with provided args.",
+	Short: "Run a managed tool from .rig/bin",
+	Long:  "Run a rig-managed tool from .rig/bin as pinned by rig.lock. No PATH fallback and no auto-install; use 'rig tools sync' first.",
 	Example: `
-  rig x golangci-lint@v1.59.0 run
+  rig x golangci-lint -- run
   rig x mockery -- --help
-  rig x github.com/vektra/mockery/v2@v2.42.0 -- --all
 `,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
@@ -40,7 +39,7 @@ var xCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Try to load config for project root; allow missing config
-		conf, configPath, err := loadConfigOptional()
+		_, configPath, err := loadConfigOptional()
 		if err != nil && !errors.Is(err, cfg.ErrConfigNotFound) {
 			return err
 		}
@@ -53,57 +52,57 @@ var xCmd = &cobra.Command{
 			configPath = filepath.Join(cwd, "rig.toml")
 		}
 
-		// Parse target and version
+		// Parse target
 		target := args[0]
-		var wantVer string
-		if i := strings.LastIndex(target, "@"); i > 0 {
-			wantVer = target[i+1:]
-			target = target[:i]
+		if strings.Contains(target, "@") {
+			return fmt.Errorf("rig x does not install; omit @version and run 'rig tools sync' instead")
 		}
 
-		module, bin := core.ResolveModuleAndBin(target)
-
-		// If version not given, try to use version from [tools] in config
-		if wantVer == "" && conf != nil && conf.Tools != nil {
-			if v, ok := conf.Tools[target]; ok {
-				wantVer = v
-			} else if v, ok := conf.Tools[module]; ok {
-				wantVer = v
-			} else if v, ok := conf.Tools[bin]; ok {
-				wantVer = v
-			}
+		lockPath := filepath.Join(filepath.Dir(configPath), "rig.lock")
+		lock, err := core.ReadLockfile(lockPath)
+		if err != nil {
+			return fmt.Errorf("rig.lock required (%s): %w", lockPath, err)
 		}
-		if wantVer == "" {
-			wantVer = "latest"
+
+		binPath, ok, rerr := core.ResolveManagedToolExecutable(configPath, lock, target)
+		if rerr != nil {
+			return rerr
 		}
-		wantVer = core.EnsureSemverPrefixV(wantVer)
-
-		// Prepare env with local bin first; set working dir if provided
-		execDir := firstNonEmpty(xDir, xDir)
-		env := envWithLocalBin(configPath, xEnv, true)
-
-		// Check installed version by invoking bin --version
-		out, _ := execCommandEnv(bin, []string{"--version"}, env)
-		have := core.ParseVersionFromOutput(out)
-		needInstall := have == "" || (core.NormalizeSemver(have) != core.NormalizeSemver(wantVer))
-
-		if needInstall {
-			if xNoInstall {
-				return fmt.Errorf("%s not installed (want %s) and --no-install set", bin, wantVer)
-			}
-			if xDryRun {
-				fmt.Printf("🧪 Dry run: would install %s@%s and run it\n", module, wantVer)
-				return nil
-			}
-			// Ensure .rig/bin exists
-			if err := os.MkdirAll(localBinDirFor(configPath), 0o755); err != nil {
-				return fmt.Errorf("create .rig/bin: %w", err)
-			}
-			fmt.Printf("🔧 Installing %s %s\n", bin, wantVer)
-			if err := execCommandSilentEnv("go", []string{"install", module + "@" + wantVer}, env); err != nil {
-				return fmt.Errorf("install %s@%s: %w", module, wantVer, err)
-			}
+		if !ok {
+			return fmt.Errorf("%s is not a managed tool (declare it in [tools] and run 'rig tools sync')", target)
 		}
+
+		// Verify binary integrity against rig.lock before executing.
+		want := ""
+		for _, lt := range lock.Tools {
+			name, _, perr := core.ParseRequested(lt.Requested)
+			if perr != nil {
+				return perr
+			}
+			bin := strings.TrimSpace(lt.Bin)
+			if bin == "" {
+				bin = core.ResolveToolIdentity(name).Bin
+			}
+			if core.ToolBinPath(configPath, bin) != binPath {
+				continue
+			}
+			want = strings.TrimSpace(lt.SHA256)
+			break
+		}
+		if want == "" {
+			return fmt.Errorf("unable to locate %s in rig.lock", target)
+		}
+		have, herr := core.ComputeFileSHA256(binPath)
+		if herr != nil {
+			return fmt.Errorf("hash %s: %w", target, herr)
+		}
+		if have != want {
+			return fmt.Errorf("%s integrity mismatch (run 'rig tools sync')", target)
+		}
+
+		// Prepare env; tools are executed via absolute .rig/bin paths.
+		execDir := strings.TrimSpace(xDir)
+		envRun := envWithLocalBin(configPath, xEnv, false)
 
 		// Execute with remaining args after the first; support `--` pass-through
 		toolArgs := []string{}
@@ -116,7 +115,7 @@ var xCmd = &cobra.Command{
 		}
 
 		if xDryRun {
-			pretty := bin
+			pretty := target
 			if len(toolArgs) > 0 {
 				pretty = pretty + " " + strings.Join(toolArgs, " ")
 			}
@@ -124,7 +123,7 @@ var xCmd = &cobra.Command{
 			return nil
 		}
 
-		return core.Execute(bin, toolArgs, core.ExecOptions{Dir: execDir, Env: env})
+		return core.Execute(binPath, toolArgs, core.ExecOptions{Dir: execDir, Env: envRun})
 	},
 }
 

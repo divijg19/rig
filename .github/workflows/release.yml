@@ -1,0 +1,142 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build-${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            archive_ext: tar.gz
+            binary_name: rig
+          - goos: linux
+            goarch: arm64
+            archive_ext: tar.gz
+            binary_name: rig
+          - goos: darwin
+            goarch: amd64
+            archive_ext: tar.gz
+            binary_name: rig
+          - goos: darwin
+            goarch: arm64
+            archive_ext: tar.gz
+            binary_name: rig
+          - goos: windows
+            goarch: amd64
+            archive_ext: zip
+            binary_name: rig.exe
+          - goos: windows
+            goarch: arm64
+            archive_ext: zip
+            binary_name: rig.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.mod
+
+      - name: Compute build metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and package
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+          TAG: ${{ steps.meta.outputs.tag }}
+          SHA: ${{ steps.meta.outputs.sha }}
+          DATE: ${{ steps.meta.outputs.date }}
+          ARCHIVE_EXT: ${{ matrix.archive_ext }}
+          BINARY_NAME: ${{ matrix.binary_name }}
+        run: |
+          set -euo pipefail
+
+          DIST_DIR="$PWD/dist"
+          STAGE_DIR="$PWD/stage"
+          mkdir -p "$DIST_DIR" "$STAGE_DIR"
+
+          if [ "$GOOS" = "windows" ]; then
+            ARCHIVE_NAME="rig_windows_${GOARCH}.zip"
+          else
+            ARCHIVE_NAME="rig_${GOOS}_${GOARCH}.tar.gz"
+          fi
+
+          LDFLAGS="-s -w -X github.com/divijg19/rig/internal/cli.version=${TAG} -X github.com/divijg19/rig/internal/cli.commit=${SHA} -X github.com/divijg19/rig/internal/cli.date=${DATE}"
+
+          go build -trimpath -buildvcs=false -ldflags "$LDFLAGS" -o "$STAGE_DIR/$BINARY_NAME" ./cmd/rig
+
+          if [ "$GOOS" = "windows" ]; then
+            (
+              cd "$STAGE_DIR"
+              zip -q "$DIST_DIR/$ARCHIVE_NAME" "$BINARY_NAME"
+            )
+          else
+            tar -czf "$DIST_DIR/$ARCHIVE_NAME" -C "$STAGE_DIR" "$BINARY_NAME"
+          fi
+
+          sha256sum "$DIST_DIR/$ARCHIVE_NAME" > "$DIST_DIR/$ARCHIVE_NAME.sha256"
+          sha256sum -c "$DIST_DIR/$ARCHIVE_NAME.sha256"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: publish-release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish GitHub Release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/rig_linux_amd64.tar.gz
+            dist/rig_linux_amd64.tar.gz.sha256
+            dist/rig_linux_arm64.tar.gz
+            dist/rig_linux_arm64.tar.gz.sha256
+            dist/rig_darwin_amd64.tar.gz
+            dist/rig_darwin_amd64.tar.gz.sha256
+            dist/rig_darwin_arm64.tar.gz
+            dist/rig_darwin_arm64.tar.gz.sha256
+            dist/rig_windows_amd64.zip
+            dist/rig_windows_amd64.zip.sha256
+            dist/rig_windows_arm64.zip
+            dist/rig_windows_arm64.zip.sha256

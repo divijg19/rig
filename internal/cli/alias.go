@@ -6,14 +6,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const aliasInfoText = `Command entrypoints:
-
-	rig  → main CLI
-	rir  → rig run
-	ric  → rig check
-	rid  → rig dev
-	ris  → rig start
-`
+const aliasInfoText = "Command entrypoints:\n\n" +
+	"    rig  → main CLI\n" +
+	"    rir  → rig run\n" +
+	"    ric  → rig check\n" +
+	"    rid  → rig dev\n" +
+	"    ris  → rig start\n\n" +
+	"Aliases are created automatically when installed via the official installer.\n" +
+	"If installed via go install, create symlinks manually.\n\n" +
+	"Unix examples:\n" +
+	"    ln -sf /usr/local/bin/rig /usr/local/bin/rir\n" +
+	"    ln -sf /usr/local/bin/rig /usr/local/bin/ric\n" +
+	"    ln -sf /usr/local/bin/rig /usr/local/bin/rid\n" +
+	"    ln -sf /usr/local/bin/rig /usr/local/bin/ris\n"
 
 var aliasCmd = &cobra.Command{
 	Use:     "alias",
@@ -26,20 +31,6 @@ var aliasCmd = &cobra.Command{
 	},
 }
 
-var aliasesDeprecatedCmd = &cobra.Command{
-	Use:    "aliases",
-	Short:  "Explain rig command aliases (deprecated)",
-	Hidden: true,
-	Args:   cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		// Backwards compatibility with earlier releases that used `rig aliases`.
-		// Kept hidden to avoid reinforcing the plural form.
-		fmt.Fprintln(cmd.ErrOrStderr(), "warning: `rig aliases` is deprecated; use `rig alias`")
-		fmt.Print(aliasInfoText)
-	},
-}
-
 func init() {
 	rootCmd.AddCommand(aliasCmd)
-	rootCmd.AddCommand(aliasesDeprecatedCmd)
 }

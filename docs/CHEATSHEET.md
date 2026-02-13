@@ -23,13 +23,13 @@ rig run dev
 - List tasks (human):
 
 ```sh
-rig ls
+rig run --list
 ```
 
 - List tasks (JSON for editors / automation):
 
 ```sh
-rig run --list --json
+rig check
 ```
 
 - Run a task with extra environment variables:
@@ -78,7 +78,6 @@ rig sync --check --json | jq .
 rig sync --offline
 rig sync --check --offline --json | jq .
 ```
-```
 
 - List missing/outdated tools (human):
 
@@ -124,7 +123,7 @@ rig build --profile release -o bin/myapp
 Quick tips
 ----------
 
-- Use `rig ls` as a low-friction way to discover project tasks.
+- Use `rig run --list` to discover project tasks.
 - For CI, prefer the `--json` outputs from `rig sync --check` and `rig outdated` for stable, machine-parsable assertions.
 
 See `docs/CLI.md` and `docs/CONFIGURATION.md` for complete command and configuration references.

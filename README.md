@@ -22,23 +22,28 @@
 
 ## Install
 
-**Via Shell (Recommended for CI/Mac/Linux)**
+**Official installer (recommended)**
 ```bash
 curl -fsSL https://rig.sh/install | sh
 ```
 
-**Via Go Install**
+On macOS/Linux, the installer installs `rig` and also creates these optional symlink entrypoints next to it:
+
+- `rir` → `rig run`
+- `ric` → `rig check`
+- `rid` → `rig dev`
+- `ris` → `rig start`
+
+On Windows, invoke `rig run`, `rig check`, `rig dev`, etc directly until a PowerShell installer exists.
+
+**Go install (single binary only)**
 ```bash
 # Install the single main binary
-go install github.com/divijg19/rig/cmd/rig@v0.3.0
-
-# Or install all reserved entrypoints (rig/rir/ric/rid/ris)
-go install github.com/divijg19/rig/cmd/...@v0.3.0
+go install github.com/divijg19/rig/cmd/rig@v0.3
 ```
 Ensure `$GOPATH/bin` is in your system's `PATH`.
 
-Aliases are invocation-name based. `rig` does not auto-create symlinks.
-If you want `rir`/`ric`/`rid`/`ris`, create them yourself:
+`go install` does not create aliases. If you want `rir`/`ric`/`rid`/`ris`, create symlinks manually:
 ```bash
 ln -sf "$(command -v rig)" "$HOME/.local/bin/rir"
 ln -sf "$(command -v rig)" "$HOME/.local/bin/ric"
@@ -91,7 +96,7 @@ github.com/vektra/mockery/v2 = "v2.46.0"
 | Command | Description |
 | :--- | :--- |
 | **`rig init`** | Generate a `rig.toml` (interactive or flags). |
-| **`rig run <task>`** | Run a task from `[tasks]` (aliases: `rig r`, `rig ls`). |
+| **`rig run <task>`** | Run a task from `[tasks]`. |
 | **`rig dev`** | Run the watcher-backed dev loop (alias: `rid`). |
 | **`rig status`** | Show current state (read-only). |
 | **`rig build`** | Compose and run `go build` using optional profiles. |
@@ -99,7 +104,7 @@ github.com/vektra/mockery/v2 = "v2.46.0"
 | **`rig sync`** | Shortcut for `rig tools sync`. |
 | **`rig check`** | Verify `rig.lock` and `.rig/bin` tool parity (alias: `ric`). |
 | **`rig outdated`** | Shortcut for `rig tools outdated`. |
-| **`rig x`** | Run a tool ephemerally (installs into `.rig/bin` if needed). |
+| **`rig x`** | Run a tool ephemerally. |
 | **`rig doctor`** | Verify local environment and toolchain sanity. |
 | **`rig setup`** | Convenience installer for `[tools]` (similar to sync). |
 

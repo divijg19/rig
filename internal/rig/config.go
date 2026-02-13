@@ -15,7 +15,8 @@ import (
 // LoadConfig loads rig.toml like config.Load, but enforces the strict task schema:
 //
 // - [tasks].<name> is either a string, or a table
-// - task tables may only contain: command, env, cwd, depends_on
+// - task tables may only contain: command, description, env, cwd, depends_on
+// - [tasks.dev] additionally supports: watch
 // - no other task fields are permitted
 func LoadConfig(startDir string) (*cfg.Config, string, error) {
 	path, err := cfg.LocateConfig(startDir)
@@ -148,22 +149,58 @@ func parseTask(name string, v any) (cfg.Task, error) {
 		}
 		return cfg.Task{Command: cmd}, nil
 	case map[string]any:
+		// v0.3: [tasks.dev] is a strict schema: only { command, watch }.
+		// We intentionally defer "non-empty" validation to the dev runtime so
+		// that dev UX error strings remain stable.
+		if name == "dev" {
+			allowed := map[string]struct{}{
+				"command": {},
+				"watch":   {},
+			}
+			for k := range val {
+				if _, ok := allowed[k]; !ok {
+					return cfg.Task{}, fmt.Errorf("unsupported field %q (allowed: command, watch)", k)
+				}
+			}
+
+			cmd := ""
+			if cmdRaw, ok := val["command"]; ok {
+				s, ok := cmdRaw.(string)
+				if !ok {
+					return cfg.Task{}, fmt.Errorf("command must be a string, got %T", cmdRaw)
+				}
+				cmd = strings.TrimSpace(s)
+			}
+
+			var watch []string
+			if watchRaw, ok := val["watch"]; ok {
+				arr, ok := watchRaw.([]any)
+				if !ok {
+					return cfg.Task{}, fmt.Errorf("watch must be an array of strings, got %T", watchRaw)
+				}
+				watch = make([]string, 0, len(arr))
+				for _, it := range arr {
+					s, ok := it.(string)
+					if !ok {
+						return cfg.Task{}, fmt.Errorf("watch items must be strings, got %T", it)
+					}
+					watch = append(watch, strings.TrimSpace(s))
+				}
+			}
+
+			return cfg.Task{Command: cmd, Watch: watch}, nil
+		}
+
 		allowed := map[string]struct{}{
 			"command":    {},
+			"description": {},
 			"env":        {},
 			"cwd":        {},
 			"depends_on": {},
 		}
-		// v0.3: allow watch patterns only on the dev task.
-		if name == "dev" {
-			allowed["watch"] = struct{}{}
-		}
 		for k := range val {
 			if _, ok := allowed[k]; !ok {
-				if name == "dev" {
-					return cfg.Task{}, fmt.Errorf("unsupported field %q (allowed: command, watch, env, cwd, depends_on)", k)
-				}
-				return cfg.Task{}, fmt.Errorf("unsupported field %q (allowed: command, env, cwd, depends_on)", k)
+				return cfg.Task{}, fmt.Errorf("unsupported field %q (allowed: command, description, env, cwd, depends_on)", k)
 			}
 		}
 
@@ -178,6 +215,15 @@ func parseTask(name string, v any) (cfg.Task, error) {
 		cmd = strings.TrimSpace(cmd)
 		if cmd == "" {
 			return cfg.Task{}, errors.New("command must be non-empty")
+		}
+
+		desc := ""
+		if descRaw, ok := val["description"]; ok {
+			s, ok := descRaw.(string)
+			if !ok {
+				return cfg.Task{}, fmt.Errorf("description must be a string, got %T", descRaw)
+			}
+			desc = strings.TrimSpace(s)
 		}
 
 		var env map[string]string
@@ -224,28 +270,7 @@ func parseTask(name string, v any) (cfg.Task, error) {
 			}
 		}
 
-		var watch []string
-		if name == "dev" {
-			if watchRaw, ok := val["watch"]; ok {
-				arr, ok := watchRaw.([]any)
-				if !ok {
-					return cfg.Task{}, fmt.Errorf("watch must be an array of strings, got %T", watchRaw)
-				}
-				for _, it := range arr {
-					s, ok := it.(string)
-					if !ok {
-						return cfg.Task{}, fmt.Errorf("watch items must be strings, got %T", it)
-					}
-					s = strings.TrimSpace(s)
-					if s == "" {
-						return cfg.Task{}, errors.New("watch items must be non-empty")
-					}
-					watch = append(watch, s)
-				}
-			}
-		}
-
-		return cfg.Task{Command: cmd, Watch: watch, Env: env, Cwd: cwd, DependsOn: deps}, nil
+		return cfg.Task{Command: cmd, Description: desc, Env: env, Cwd: cwd, DependsOn: deps}, nil
 	default:
 		return cfg.Task{}, fmt.Errorf("task must be string or table, got %T", v)
 	}
