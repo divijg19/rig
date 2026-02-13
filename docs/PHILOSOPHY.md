@@ -15,7 +15,7 @@ We believe that a project that works "on my machine" but fails in CI is a broken
 
 `rig` solves this with **Strict Determinism**:
 *   **Single Source of Truth:** Your `rig.toml` defines everything—metadata, scripts, and toolchain versions.
-*   **Hermetic Tooling:** `rig` never touches your global `$PATH`. Tools (like linters and generators) are sandboxed per-project and version-locked in `rig.lock`.
+*   **Hermetic Tooling:** `rig` never mutates your shell's global `$PATH`. Tools (like linters and generators) are sandboxed per-project and version-locked in `rig.lock`.
 *   **Structure:** Like Cargo, `rig` provides opinionated scaffolding (`rig new`) to standardize project layouts, ending the debate on where folders should go.
 
 #### 2. Bun’s DX: The "Virtual Runtime" Experience
@@ -23,7 +23,7 @@ We believe developers shouldn't have to stitch together five different tools jus
 We believe that developer tools should be fast, intuitive, and a joy to use. A great Developer Experience (DX) is not a luxury; it is a core feature that enables higher productivity and better software.
 
 `rig` is **obsessed with DX** and provides an **All-in-One Environment**:
-*   **Batteries Included:** You shouldn't need a separate binary for hot-reloading, another for testing, and another for env vars. `rig dev` handles watching, rebuilding, and restarting natively.
+*   **Batteries Included:** You shouldn't need a separate binary for hot-reloading, another for testing, and another for env vars. `rig dev` drives a watcher-backed dev loop from `rig.toml` (v0.3 uses tool-backed watching, not a native watcher).
 *   **Speed as a Feature:** `rig` is written in Go. It starts instantly, caches aggressively (inspired by `uv`), and respects your time.
 *   **Unified Interface:** Whether you are testing (`rig test`), building (`rig build`), or running a one-off tool (`rig x`), the interface is consistent, pretty, and human-readable.
 

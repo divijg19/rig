@@ -86,10 +86,3 @@ func EnsureSemverPrefixV(v string) string {
 	}
 	return v
 }
-
-// ParseVersionFromOutput extracts a semver (with or without v) from arbitrary --version output.
-func ParseVersionFromOutput(s string) string {
-	re := regexp.MustCompile(`v?\d+\.\d+\.\d+`)
-	m := re.FindString(s)
-	return NormalizeSemver(m)
-}

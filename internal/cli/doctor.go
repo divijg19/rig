@@ -5,6 +5,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 
 	cfg "github.com/divijg19/rig/internal/config"
 	core "github.com/divijg19/rig/internal/rig"
@@ -14,7 +15,7 @@ import (
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Check your development environment and tooling",
-	Long:  "Verifies the Go toolchain and (if present) tools pinned in rig.toml using the local .rig/bin PATH.",
+	Long:  "Verifies the Go toolchain and (if present) tools pinned in rig.toml. Rig-managed tools are checked exclusively from .rig/bin.",
 	Example: `
 	rig doctor
 `,
@@ -35,24 +36,27 @@ var doctorCmd = &cobra.Command{
 		}
 		if conf != nil && len(conf.Tools) > 0 {
 			fmt.Println("🔍 Checking tools:")
-			env := envWithLocalBin(path, nil, false)
-			for name, ver := range conf.Tools {
-				_, bin := core.ResolveModuleAndBin(name)
-				want := core.NormalizeSemver(core.EnsureSemverPrefixV(ver))
-				out, err := execCommandEnv(bin, []string{"--version"}, env)
-				if err != nil {
-					fmt.Printf("  ❌ %s not found (want %s)\n", bin, ver)
-					continue
-				}
-				have := core.ParseVersionFromOutput(out)
-				if have == "" || want == "" {
-					fmt.Printf("  ✅ %s present\n", bin)
-					continue
-				}
-				if have != want {
-					fmt.Printf("  ❌ %s version mismatch (have %s, want %s)\n", bin, have, want)
+			lockPath := filepath.Join(filepath.Dir(path), "rig.lock")
+			lock, lerr := core.ReadLockfile(lockPath)
+			if lerr != nil {
+				fmt.Printf("  ❌ rig.lock missing or unreadable (%s): %v\n", lockPath, lerr)
+			} else {
+				rows, missing, mismatched, _, cerr := core.CheckInstalledTools(conf.Tools, lock, path)
+				if cerr != nil {
+					fmt.Printf("  ❌ tooling check failed: %v\n", cerr)
 				} else {
-					fmt.Printf("  ✅ %s %s\n", bin, ver)
+					for _, r := range rows {
+						switch r.Status {
+						case "missing":
+							fmt.Printf("  ❌ %s missing (run 'rig tools sync')\n", r.Bin)
+						case "mismatch":
+							fmt.Printf("  ❌ %s integrity mismatch (run 'rig tools sync')\n", r.Bin)
+						default:
+							fmt.Printf("  ✅ %s\n", r.Bin)
+						}
+					}
+					_ = missing
+					_ = mismatched
 				}
 			}
 		}

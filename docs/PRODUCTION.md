@@ -15,7 +15,7 @@ Important characteristics for production:
 - `rig` streams child's `stdout` and `stderr` directly to its own `stdout`/`stderr` (no buffering). This keeps logs real-time and compatible with Docker / journald.
 - Environment and working directory can be controlled via `ExecOptions.Dir` and `ExecOptions.Env`.
 
-Note: `rig` does not currently implement advanced logging or structured JSON emission for every task; you can wrap task commands with your own JSON logger or use `rig x` to run tools that emit structured logs.
+Note: `rig` does not currently implement advanced logging or structured JSON emission for every task; you can wrap task commands with your own JSON logger or use `rig x` to run pinned tools that emit structured logs.
 
 ---
 
@@ -39,7 +39,7 @@ Recommendations:
 
 - `rig` streams stdout/stderr of tasks directly — logs from tasks will appear in the container logs as-is.
 - For structured logs consider running your service under a structured-logging wrapper or use tools that output JSON.
-- Use `rig run --list --json` and `rig tools sync --check --json` to drive automation and monitoring checks from CI systems.
+- Use `rig check` (always prints stable JSON) and `rig tools sync --check --json` / `rig tools outdated --json` to drive automation and monitoring checks from CI systems.
 
 ---
 

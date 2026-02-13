@@ -5,6 +5,7 @@ package cli
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	core "github.com/divijg19/rig/internal/rig"
 	"github.com/spf13/cobra"
@@ -48,7 +49,22 @@ func newRunLikeCommand(use string, short string) *cobra.Command {
 					names = append(names, name)
 				}
 				sort.Strings(names)
+				maxNameLen := 0
+				hasDescriptions := false
 				for _, name := range names {
+					if len(name) > maxNameLen {
+						maxNameLen = len(name)
+					}
+					if strings.TrimSpace(conf.Tasks[name].Description) != "" {
+						hasDescriptions = true
+					}
+				}
+				for _, name := range names {
+					desc := strings.TrimSpace(conf.Tasks[name].Description)
+					if hasDescriptions && desc != "" {
+						fmt.Printf("%-*s  %s\n", maxNameLen, name, desc)
+						continue
+					}
 					fmt.Println(name)
 				}
 				return nil

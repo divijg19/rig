@@ -29,20 +29,6 @@ func TestEnsureSemverPrefixV(t *testing.T) {
 	}
 }
 
-func TestParseVersionFromOutput(t *testing.T) {
-	cases := map[string]string{
-		"golangci-lint has version v1.62.0 build": "1.62.0",
-		"mockery version 2.46.0":                  "2.46.0",
-		"version: v0.0.0-dev":                     "0.0.0",
-		"no version here":                         "",
-	}
-	for in, want := range cases {
-		if got := ParseVersionFromOutput(in); got != want {
-			t.Fatalf("ParseVersionFromOutput(%q) = %q, want %q", in, got, want)
-		}
-	}
-}
-
 func TestToolShortNameMapContainsEssentials(t *testing.T) {
 	must := []string{"golangci-lint", "mockery", "staticcheck", "revive"}
 	for _, k := range must {

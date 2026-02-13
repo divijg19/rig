@@ -21,7 +21,8 @@ const LockSchema0 = 0
 // - tools are sorted lexicographically by Requested
 // - fields are written in a fixed order
 // - module and url are mutually exclusive
-// - checksum is optional
+// - checksum is optional (go module checksum, not used for tool verification)
+// - sha256 is required (binary integrity for .rig/bin)
 //
 // Notes:
 //   - requested and resolved are intentionally opaque strings; they are meant to be
@@ -39,6 +40,7 @@ const LockSchema0 = 0
 //	module = "github.com/golangci/golangci-lint"
 //	bin = "golangci-lint"
 //	checksum = "h1:..." # optional
+//	sha256 = "..."      # required
 //
 // (No comments are generated in the lock file.)
 type LockedTool struct {
@@ -50,6 +52,7 @@ type LockedTool struct {
 	Bin      string `toml:"bin,omitempty"`
 	URL      string `toml:"url,omitempty"`
 	Checksum string `toml:"checksum,omitempty"`
+	SHA256   string `toml:"sha256,omitempty"`
 }
 
 // GoToolchainLock captures the Go toolchain requirement for this repo.
@@ -89,12 +92,15 @@ func (t LockedTool) validate() error {
 	if t.Module != "" && t.URL != "" {
 		return errors.New("tool.module and tool.url are mutually exclusive")
 	}
+	if strings.TrimSpace(t.SHA256) == "" {
+		return errors.New("tool.sha256 is required")
+	}
 	return nil
 }
 
 func ValidateLockfile(l Lockfile) error {
 	if l.Schema != LockSchema0 {
-		return fmt.Errorf("unsupported rig.lock schema %d", l.Schema)
+		return fmt.Errorf("unsupported rig.lock schema %d (expected %d)", l.Schema, LockSchema0)
 	}
 	if l.Toolchain != nil && l.Toolchain.Go != nil {
 		gt := l.Toolchain.Go
@@ -177,6 +183,9 @@ func MarshalLockfile(l Lockfile) ([]byte, error) {
 		}
 		if t.Checksum != "" {
 			writeTOMLKV(&buf, "checksum", t.Checksum)
+		}
+		if t.SHA256 != "" {
+			writeTOMLKV(&buf, "sha256", t.SHA256)
 		}
 		if i != len(tools)-1 {
 			buf.WriteString("\n")
