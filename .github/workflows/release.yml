@@ -99,7 +99,10 @@ jobs:
             tar -czf "$DIST_DIR/$ARCHIVE_NAME" -C "$STAGE_DIR" "$BINARY_NAME"
           fi
 
-          sha256sum "$DIST_DIR/$ARCHIVE_NAME" > "$DIST_DIR/$ARCHIVE_NAME.sha256"
+          (
+            cd "$DIST_DIR"
+            sha256sum "$ARCHIVE_NAME" > "$ARCHIVE_NAME.sha256"
+          )
           sha256sum -c "$DIST_DIR/$ARCHIVE_NAME.sha256"
 
       - name: Upload build artifacts
