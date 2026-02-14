@@ -21,9 +21,9 @@ If you have an idea for a new feature or an improvement, please open a [feature 
 Ready to write some code? Here’s how to get started:
 
 1.  **Fork the repository** on GitHub.
-2.  **Clone your fork** to your local machine: `git clone https://github.com/<your-username>/rig.git`
+2.  **Clone your fork** to your local machine: `git clone https://github.com/divijg19/rig.git`
 3.  **Create a new branch** for your changes: `git checkout -b feature/my-awesome-feature`
-4.  **Make your changes.** Ensure you adhere to the code style.
+4.  **Make your changes.** Ensure you adhere to the code style, use `go fmt ./...`
 5.  **Add tests** for your changes. We take testing seriously.
 6.  **Ensure code builds and vets cleanly:** `rig run build` then `rig run vet`
 7.  **Commit your changes** with a clear and descriptive commit message.
@@ -32,7 +32,7 @@ Ready to write some code? Here’s how to get started:
 
 ### Style Guide
 
-*   All Go code must be formatted with `gofmt`.
+*   All Go code must be formatted with `go fmt ./...`.
 *   Linting: we aim to add `golangci-lint` in a future phase. For now, ensure `go vet` is clean and code is formatted.
 
 ### Code of Conduct

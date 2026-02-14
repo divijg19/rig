@@ -1,4 +1,4 @@
-**CLI Reference (v0.3)**
+**CLI Reference (v0.4)**
 
 This document describes the stable, daily workflow commands:
 
@@ -18,6 +18,9 @@ Reserved entrypoints:
 - `rig` → main CLI
 - `rir` → `rig run`
 - `ric` → `rig check`
+- `ril` → `rig tools ls`
+- `rip` → `rig tools path`
+- `riw` → `rig tools why`
 - `rid` → `rig dev`
 - `ris` → `rig start` (stub / future)
 
@@ -77,6 +80,36 @@ Output:
 - Always prints stable JSON to stdout.
 - Exits non-zero if the check fails.
 
+### `rig tools ls` (entrypoint alias: `ril`)
+
+Lists tools from `rig.lock` in deterministic name order.
+
+### `rig tools path <name>` (entrypoint alias: `rip`)
+
+Prints the absolute path for a locked tool binary in `.rig/bin`.
+
+Validation:
+- tool exists in `rig.lock`
+- binary exists in `.rig/bin`
+- file checksum matches lock SHA256
+
+### `rig tools why <name>` (entrypoint alias: `riw`)
+
+Shows lock-backed provenance for one tool:
+- requested
+- resolved module@version
+- sha256
+- resolved binary path
+
+### `rig tools doctor [name]`
+
+Diagnoses tool health for all tools or one tool:
+- present / missing
+- executable bit
+- sha256 parity
+
+Deterministic output ordering is preserved.
+
 ### `rig status`
 
 Read-only overview of current state:
@@ -84,6 +117,28 @@ Read-only overview of current state:
 - lock presence and parity
 - tool counts (missing/mismatched/extras)
 - Go toolchain status (if applicable)
+
+### `rig doctor [name]`
+
+- Without args: runs environment + toolchain doctor checks.
+- With `<name>`: delegates to `rig tools doctor <name>`.
+
+### `rig upgrade`
+
+Self-updates the `rig` binary from GitHub Releases.
+
+Behavior:
+- Compares current build version to latest `tag_name`; if equal, prints up-to-date and exits.
+- Selects asset by OS/arch:
+  - Unix: `rig_<os>_<arch>.tar.gz`
+  - Windows: `rig_windows_<arch>.zip`
+- Requires a matching `<asset>.sha256` and verifies SHA256 before extraction.
+- Requires archive contract: exactly one binary entry (`rig` or `rig.exe`).
+- Replaces the current executable only; does not mutate `rig.toml`, `rig.lock`, PATH, aliases, or project config.
+- Exits non-zero on any failure (network, checksum mismatch, unsupported platform, permission denied, extraction/replace errors).
+
+Windows note:
+- If replacement fails due to a running/locked executable, close active `rig` processes and retry.
 
 ### `rig start` (alias: `ris`)
 

@@ -21,7 +21,6 @@ docs/CLI.md
 docs/CONFIGURATION.md
 docs/GOLDEN_STACK.md
 docs/INSTALLATION.md
-docs/INSTALLATION_ADVANCED.md
 docs/PHILOSOPHY.md
 docs/PRODUCTION.md
 docs/ROADMAP.md
@@ -57,6 +56,7 @@ internal/cli/status.go
 internal/cli/tools.go
 internal/cli/tools_util.go
 internal/cli/tools_util_test.go
+internal/cli/upgrade.go
 internal/cli/x.go
 internal/config/README.md
 internal/config/config.go
@@ -68,6 +68,7 @@ internal/rig/build_test.go
 internal/rig/check.go
 internal/rig/config.go
 internal/rig/config_test.go
+internal/rig/doctor.go
 internal/rig/env.go
 internal/rig/exec.go
 internal/rig/executor.go
@@ -76,6 +77,7 @@ internal/rig/go_toolchain_test.go
 internal/rig/hash.go
 internal/rig/lock.go
 internal/rig/lock_test.go
+internal/rig/observability_upgrade_test.go
 internal/rig/resolve.go
 internal/rig/resolve_test.go
 internal/rig/run.go
@@ -83,5 +85,7 @@ internal/rig/status.go
 internal/rig/tooling.go
 internal/rig/tooling_test.go
 internal/rig/tools.go
+internal/rig/tools_inspect.go
+internal/rig/upgrade.go
 internal/tui/README.md
 rig.toml

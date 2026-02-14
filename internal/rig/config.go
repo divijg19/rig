@@ -192,11 +192,11 @@ func parseTask(name string, v any) (cfg.Task, error) {
 		}
 
 		allowed := map[string]struct{}{
-			"command":    {},
+			"command":     {},
 			"description": {},
-			"env":        {},
-			"cwd":        {},
-			"depends_on": {},
+			"env":         {},
+			"cwd":         {},
+			"depends_on":  {},
 		}
 		for k := range val {
 			if _, ok := allowed[k]; !ok {

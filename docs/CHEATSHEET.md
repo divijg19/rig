@@ -72,9 +72,7 @@ rig sync --check
 # Machine readable (CI):
 rig sync --check --json | jq .
 
-- Hermetic/offline (no downloads; requires module cache):
-
-```sh
+# Hermetic/offline (no downloads; requires module cache):
 rig sync --offline
 rig sync --check --offline --json | jq .
 ```
@@ -89,6 +87,22 @@ rig outdated
 
 ```sh
 rig outdated --json
+```
+
+- Tool observability (lock-backed diagnostics):
+
+```sh
+rig tools ls
+rig tools path golangci-lint
+rig tools why golangci-lint
+rig tools doctor
+rig tools doctor golangci-lint
+```
+
+- Self-upgrade:
+
+```sh
+rig upgrade
 ```
 
 CI snippet (GitHub Actions)

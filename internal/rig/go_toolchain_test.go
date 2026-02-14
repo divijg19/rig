@@ -10,9 +10,9 @@ import (
 
 func TestNormalizeGoToolchainRequested(t *testing.T) {
 	tc := []struct {
-		in       string
-		want     string
-		wantErr  bool
+		in      string
+		want    string
+		wantErr bool
 	}{
 		{"1.22.3", "1.22.3", false},
 		{"go1.22.3", "1.22.3", false},

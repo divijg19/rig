@@ -8,11 +8,11 @@ type StatusReport struct {
 
 	HasLock bool `json:"hasLock"`
 
-	LockMatchesConfig bool `json:"lockMatchesConfig"`
-	ToolsOK           bool `json:"toolsOk"`
-	Missing           int  `json:"missing"`
-	Mismatched        int  `json:"mismatched"`
-	Extras            int  `json:"extras"`
+	LockMatchesConfig bool         `json:"lockMatchesConfig"`
+	ToolsOK           bool         `json:"toolsOk"`
+	Missing           int          `json:"missing"`
+	Mismatched        int          `json:"mismatched"`
+	Extras            int          `json:"extras"`
 	Go                *GoStatusRow `json:"go,omitempty"`
 }
 

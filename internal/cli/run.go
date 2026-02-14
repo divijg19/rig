@@ -88,7 +88,6 @@ func newRunLikeCommand(use string, short string) *cobra.Command {
 // runCmd represents the v0.2 `rig run <task>` command.
 var runCmd = newRunLikeCommand("run", "Run a named task from rig.toml")
 
-
 func init() {
 	rootCmd.AddCommand(runCmd)
 }

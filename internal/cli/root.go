@@ -37,26 +37,7 @@ var rootCmd = &cobra.Command{
 		}
 		return cmd.Help()
 	},
-	Long: `rig enhances the Go toolchain with a single, declarative manifest (rig.toml).
-
-Command aliases are logical and resolved by invocation name (argv[0]):
-	• rir → rig run
-	• ric → rig check
-	• rid → rig dev
-	• ris → rig start (stub)
-
-To use them as standalone commands, symlink or rename the rig binary.
-See: rig alias
-
-Features:
-	• Interactive Setup: 'rig init' with smart defaults (git config, Go version detection)
-	• Unified Manifest: [project], [tasks], [tools], [profile.*], and includes
-	• Strict Tasks: task values are either strings or tables with {command, description, env, cwd, depends_on}
-	• Reproducible Tooling: 'rig sync' writes rig.lock and installs tools into .rig/bin
-	• Daily Dev Loop: 'rig dev' runs a watcher-backed dev task (requires rig.lock)
-	• Lock-backed Execution: 'rig run' and 'rig check' require rig.lock and enforce tool parity
-
-Tip: run 'rig init' to create an interactive rig.toml, then 'rig tools sync' to install tools.`,
+	Long: `rig enhances the Go toolchain with a single declarative manifest (rig.toml).`,
 }
 
 var versionCmd = &cobra.Command{
@@ -86,14 +67,55 @@ func ExecuteWithArgs(args []string) {
 
 func init() {
 	rootCmd.Flags().BoolVarP(&rootShowVersion, "version", "v", false, "print version information")
-
 	defaultHelp := rootCmd.HelpFunc()
+
 	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		if cmd != rootCmd {
+			defaultHelp(cmd, args)
+			return
+		}
 		out := cmd.OutOrStdout()
 		printVersion(out)
 		fmt.Fprintln(out)
-		defaultHelp(cmd, args)
+		fmt.Fprintln(out, "rig enhances the Go toolchain with a single declarative manifest (rig.toml).")
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Quick Start:")
+		fmt.Fprintln(out, "  rig init")
+		fmt.Fprintln(out, "  rig sync")
+		fmt.Fprintln(out, "  rig run <task>")
+		fmt.Fprintln(out, "  rig dev")
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Tooling:")
+		fmt.Fprintln(out, "  rig tools           manage project tools (run \"rig tools\" to see subcommands)")
+		fmt.Fprintln(out, "  rig doctor          inspect toolchain and environment")
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Maintenance:")
+		fmt.Fprintln(out, "  rig check           verify lock parity")
+		fmt.Fprintln(out, "  rig status          project health summary")
+		fmt.Fprintln(out, "  rig upgrade         update rig binary")
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Usage:")
+		fmt.Fprintln(out, "  rig [command]")
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Available Commands:")
+		allowed := []string{"alias", "build", "check", "completion", "dev", "doctor", "help", "init", "run", "start", "status", "sync", "tools", "upgrade", "version", "x"}
+		for _, name := range allowed {
+			c, _, err := cmd.Find([]string{name})
+			if err != nil || c == nil || c.Name() != name || c.Hidden {
+				continue
+			}
+			fmt.Fprintf(out, "  %-11s %s\n", c.Name(), c.Short)
+		}
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Flags:")
+		fmt.Fprintln(out, "  -h, --help      help for rig")
+		fmt.Fprintln(out, "  -v, --version   print version information")
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Run \"rig help [command]\" for details.")
+		fmt.Fprintln(out, "Run \"rig tools\" to view tool subcommands.")
+		fmt.Fprintln(out, "Run \"rig alias\" to view invocation aliases.")
 		fmt.Fprintln(out, "Run \"rig version\" for build information.")
+		fmt.Fprintln(out, "Run \"rig x --help\" to execute managed tools directly.")
 	})
 
 	rootCmd.AddCommand(versionCmd)

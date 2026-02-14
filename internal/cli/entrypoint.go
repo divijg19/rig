@@ -25,6 +25,12 @@ func rewriteArgsForInvocation() {
 		os.Args = append([]string{"rig", "run"}, os.Args[1:]...)
 	case "ric":
 		os.Args = append([]string{"rig", "check"}, os.Args[1:]...)
+	case "ril":
+		os.Args = append([]string{"rig", "tools", "ls"}, os.Args[1:]...)
+	case "rip":
+		os.Args = append([]string{"rig", "tools", "path"}, os.Args[1:]...)
+	case "riw":
+		os.Args = append([]string{"rig", "tools", "why"}, os.Args[1:]...)
 	case "rid":
 		os.Args = append([]string{"rig", "dev"}, os.Args[1:]...)
 	case "ris":

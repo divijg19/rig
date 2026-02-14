@@ -400,7 +400,6 @@ func (r *DevRuntime) ensureWatcherInstalled() error {
 	return nil
 }
 
-
 func buildWatcherArgs(globs []string, command string) []string {
 	regex := computeWatchRegex(globs)
 	args := []string{"-s", "-r", regex, "--", "sh", "-c", command}

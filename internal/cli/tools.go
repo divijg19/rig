@@ -23,6 +23,86 @@ var (
 	toolsOffline   bool
 )
 
+var toolsLsCmd = &cobra.Command{
+	Use:   "ls",
+	Short: "List managed tools",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		items, err := core.ToolsLS("")
+		if err != nil {
+			return err
+		}
+		for _, it := range items {
+			fmt.Printf("%s\t%s\t%s\t%s\t%s\n", it.Name, it.Requested, it.Resolved, it.Path, string(it.Status))
+		}
+		return nil
+	},
+}
+
+var toolsPathCmd = &cobra.Command{
+	Use:   "path <name>",
+	Short: "Print absolute path of a managed tool",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		p, err := core.ToolPath("", args[0])
+		if err != nil {
+			return err
+		}
+		fmt.Println(p)
+		return nil
+	},
+}
+
+var toolsWhyCmd = &cobra.Command{
+	Use:   "why <name>",
+	Short: "Explain tool provenance",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		info, err := core.ToolWhy("", args[0])
+		if err != nil {
+			return err
+		}
+		fmt.Printf("name: %s\n", info.Name)
+		fmt.Printf("requested: %s\n", info.Requested)
+		fmt.Printf("resolved: %s\n", info.Resolved)
+		fmt.Printf("sha256: %s\n", info.SHA256)
+		fmt.Printf("path: %s\n", info.Path)
+		return nil
+	},
+}
+
+var toolsDoctorCmd = &cobra.Command{
+	Use:   "doctor [name]",
+	Short: "Diagnose managed tools",
+	Args:  cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := ""
+		if len(args) == 1 {
+			name = args[0]
+		}
+		reports, err := core.ToolsDoctor("", name)
+		if err != nil {
+			return err
+		}
+		for _, r := range reports {
+			fmt.Printf("name: %s\n", r.Name)
+			fmt.Printf("path: %s\n", r.Path)
+			fmt.Printf("exists: %t\n", r.Exists)
+			fmt.Printf("executable: %t\n", r.Executable)
+			fmt.Printf("sha_expected: %s\n", r.SHAExpected)
+			fmt.Printf("sha_actual: %s\n", r.SHAActual)
+			fmt.Printf("sha_match: %t\n", r.SHAMatch)
+			fmt.Printf("resolved_path: %s\n", r.ResolvedPath)
+			fmt.Printf("resolved_ok: %t\n", r.ResolvedOK)
+			fmt.Printf("status: %s\n", r.Status)
+			if strings.TrimSpace(r.Error) != "" {
+				fmt.Printf("error: %s\n", r.Error)
+			}
+		}
+		return nil
+	},
+}
+
 // toolsCmd represents the tools command
 var toolsCmd = &cobra.Command{
 	Use:     "tools",
@@ -326,10 +406,16 @@ func init() {
 	toolsSyncCmd.Flags().BoolVar(&toolsOffline, "offline", false, "do not download modules (sets GOPROXY=off, GOSUMDB=off)")
 	toolsCheckCmd.Flags().BoolVar(&toolsCheckJSON, "json", false, "print machine-readable JSON summary")
 	toolsOutdatedCmd.Flags().BoolVar(&outdatedJSON, "json", false, "print machine-readable JSON status")
+	toolsSetupCmd.Flags().BoolVar(&setupCheck, "check", false, "verify installed tool versions against rig.toml (no install)")
 
 	toolsCmd.AddCommand(toolsSyncCmd)
 	toolsCmd.AddCommand(toolsCheckCmd)
 	toolsCmd.AddCommand(toolsOutdatedCmd)
+	toolsCmd.AddCommand(toolsSetupCmd)
+	toolsCmd.AddCommand(toolsLsCmd)
+	toolsCmd.AddCommand(toolsPathCmd)
+	toolsCmd.AddCommand(toolsWhyCmd)
+	toolsCmd.AddCommand(toolsDoctorCmd)
 	rootCmd.AddCommand(toolsCmd)
 }
 

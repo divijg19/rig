@@ -16,9 +16,10 @@ import (
 var setupCheck bool
 
 var setupCmd = &cobra.Command{
-	Use:   "setup",
-	Short: "Install pinned tools into .rig/bin (from [tools])",
-	Long:  "Reads [tools] from rig.toml and installs version-locked tools locally into .rig/bin using 'go install'.",
+	Use:    "setup",
+	Short:  "Install pinned tools into .rig/bin (from [tools])",
+	Long:   "Reads [tools] from rig.toml and installs version-locked tools locally into .rig/bin using 'go install'.",
+	Hidden: true,
 	Example: `
 	rig setup
 	# pin tools in rig.toml first, e.g.:
@@ -104,4 +105,14 @@ var setupCmd = &cobra.Command{
 func init() {
 	setupCmd.Flags().BoolVar(&setupCheck, "check", false, "verify installed tool versions against rig.toml (no install)")
 	rootCmd.AddCommand(setupCmd)
+}
+
+var toolsSetupCmd = &cobra.Command{
+	Use:     "setup",
+	Short:   "Install pinned tools into .rig/bin (from [tools])",
+	Long:    "Reads [tools] from rig.toml and installs version-locked tools locally into .rig/bin using 'go install'.",
+	Example: setupCmd.Example,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return setupCmd.RunE(setupCmd, args)
+	},
 }

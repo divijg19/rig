@@ -22,7 +22,13 @@
 
 ## Install
 
-**Official installer (recommended)**
+**Current installer**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/divijg19/rig/main/install.sh | sh
+```
+
+**Eventual official installer**
 ```bash
 curl -fsSL https://rig.sh/install | sh
 ```
@@ -34,19 +40,28 @@ On macOS/Linux, the installer installs `rig` and also creates these optional sym
 - `rid` → `rig dev`
 - `ris` → `rig start`
 
+Additional entrypoints are supported by invocation name and can be created manually:
+
+- `ril` → `rig tools ls`
+- `rip` → `rig tools path`
+- `riw` → `rig tools why`
+
 On Windows, invoke `rig run`, `rig check`, `rig dev`, etc directly until a PowerShell installer exists.
 
 **Go install (single binary only)**
 ```bash
 # Install the single main binary
-go install github.com/divijg19/rig/cmd/rig@v0.3
+go install github.com/divijg19/rig/cmd/rig@latest
 ```
 Ensure `$GOPATH/bin` is in your system's `PATH`.
 
-`go install` does not create aliases. If you want `rir`/`ric`/`rid`/`ris`, create symlinks manually:
+`go install` does not create aliases. If you want aliases, create symlinks manually:
 ```bash
 ln -sf "$(command -v rig)" "$HOME/.local/bin/rir"
 ln -sf "$(command -v rig)" "$HOME/.local/bin/ric"
+ln -sf "$(command -v rig)" "$HOME/.local/bin/ril"
+ln -sf "$(command -v rig)" "$HOME/.local/bin/rip"
+ln -sf "$(command -v rig)" "$HOME/.local/bin/riw"
 ln -sf "$(command -v rig)" "$HOME/.local/bin/rid"
 ln -sf "$(command -v rig)" "$HOME/.local/bin/ris"
 ```
@@ -84,10 +99,25 @@ github.com/vektra/mockery/v2 = "v2.46.0"
 
 ---
 
-## Upgrade notes (v0.2 → v0.3)
+## Quick upgrade notes 
+### (v0.2) 
+
+- `rig run` (alias: rir) now requires `rig.lock` for deterministic tool validation and execution. List tasks set in rig.toml quickly with `rig run --list` or `rir --list` if you use aliases. Run `rig sync` to generate the lock file and install tools.
+- `rig check` (alias: `ric`) verifies `rig.lock` presence and tool parity. Use it in CI to ensure a clean state before running tasks.
+- `rig status` checks for `rig.lock` and `.rig/bin` parity and reports the current state of the project environment.
+- `rig sync` now writes `rig.lock` (schema=0) and `.rig/manifest.lock` (a hash cache) for deterministic tool resolution and fast parity checks.
+
+### (v0.3)
 
 - `rig dev` is now a first-class command (alias: `rid`). Configure it via `[tasks.dev]` with `command` + `watch`.
 - Alias model is finalized: one binary with invocation-name dispatch. See `rig alias`.
+
+### (v0.4)
+
+- Tool observability commands are available: `rig tools ls`, `rig tools path <name>`, `rig tools why <name>`, `rig tools doctor [name]`.
+- New invocation-name aliases are supported: `ril`, `rip`, and `riw`.
+- `rig doctor` now accepts an optional tool name and dispatches to tool diagnostics.
+- `rig upgrade` performs a checksum-verified binary self-update with an up-to-date short-circuit.
 
 ---
 
@@ -101,12 +131,27 @@ github.com/vektra/mockery/v2 = "v2.46.0"
 | **`rig status`** | Show current state (read-only). |
 | **`rig build`** | Compose and run `go build` using optional profiles. |
 | **`rig tools`** | Manage tools declared in `[tools]` (sync/check/outdated). |
+| **`rig tools ls`** | List locked tools in deterministic order (alias entrypoint: `ril`). |
+| **`rig tools path <name>`** | Print absolute path in `.rig/bin` with lock+checksum validation (alias entrypoint: `rip`). |
+| **`rig tools why <name>`** | Show requested/resolved/sha/path provenance for a tool (alias entrypoint: `riw`). |
+| **`rig tools doctor [name]`** | Diagnose tool presence, executable bit, and checksum parity. |
 | **`rig sync`** | Shortcut for `rig tools sync`. |
 | **`rig check`** | Verify `rig.lock` and `.rig/bin` tool parity (alias: `ric`). |
 | **`rig outdated`** | Shortcut for `rig tools outdated`. |
 | **`rig x`** | Run a tool ephemerally. |
 | **`rig doctor`** | Verify local environment and toolchain sanity. |
+| **`rig upgrade`** | Upgrade the `rig` binary with asset+SHA verification and safe replacement semantics. |
 | **`rig setup`** | Convenience installer for `[tools]` (similar to sync). |
+
+---
+
+## Self-upgrade behavior
+
+- Scope: `rig upgrade` only replaces the current `rig` executable. It does not modify `rig.toml`, `rig.lock`, PATH, aliases, or project config.
+- Version gate: if latest release tag exactly matches current version, it prints up-to-date and does not replace the binary.
+- Integrity: downloads both release asset and `.sha256`, validates filename and SHA256 before extraction.
+- Archive contract: requires exactly one binary entry (`rig` on Unix, `rig.exe` on Windows).
+- Replacement: uses temp-file replacement; on Windows, if the running binary is locked, it returns an actionable message to close running `rig` processes and retry.
 
 ---
 

@@ -91,4 +91,4 @@ rig build --profile release
 
 - If your project needs advanced supervision (auto-restart, healthchecks, concurrency limiting), run `rig` under a true process supervisor (systemd, supervisor, Kubernetes). `rig` is intended primarily as a developer- and CI-oriented task orchestrator and build tool.
 
-- If you want `rig` to act as a full supervisor (PID 1) with proper signal forwarding and reaping behavior, we can add a small signal-forwarding loop to the project that registers `signal.Notify` and forwards signals to the active child process; I can draft this change if you'd like.
+- If you want `rig` to act as a full supervisor (PID 1) with proper signal forwarding and reaping behavior, we can add a small signal-forwarding loop to the project that registers `signal.Notify` and forwards signals to the active child process. This is on the roadmap but not in the pipeline plan before maturity at v1.0.

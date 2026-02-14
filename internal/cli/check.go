@@ -9,9 +9,9 @@ import (
 )
 
 var checkCmd = &cobra.Command{
-	Use:     "check",
-	Short:   "Verify rig.lock and installed tools",
-	Args:    cobra.NoArgs,
+	Use:   "check",
+	Short: "Verify rig.lock and installed tools",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rep, err := core.Check("")
 		if b, mErr := rep.MarshalJSONStable(); mErr == nil {

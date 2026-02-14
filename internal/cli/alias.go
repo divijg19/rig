@@ -10,6 +10,9 @@ const aliasInfoText = "Command entrypoints:\n\n" +
 	"    rig  → main CLI\n" +
 	"    rir  → rig run\n" +
 	"    ric  → rig check\n" +
+	"    ril  → rig tools ls\n" +
+	"    rip  → rig tools path\n" +
+	"    riw  → rig tools why\n" +
 	"    rid  → rig dev\n" +
 	"    ris  → rig start\n\n" +
 	"Aliases are created automatically when installed via the official installer.\n" +
@@ -17,6 +20,9 @@ const aliasInfoText = "Command entrypoints:\n\n" +
 	"Unix examples:\n" +
 	"    ln -sf /usr/local/bin/rig /usr/local/bin/rir\n" +
 	"    ln -sf /usr/local/bin/rig /usr/local/bin/ric\n" +
+	"    ln -sf /usr/local/bin/rig /usr/local/bin/ril\n" +
+	"    ln -sf /usr/local/bin/rig /usr/local/bin/rip\n" +
+	"    ln -sf /usr/local/bin/rig /usr/local/bin/riw\n" +
 	"    ln -sf /usr/local/bin/rig /usr/local/bin/rid\n" +
 	"    ln -sf /usr/local/bin/rig /usr/local/bin/ris\n"
 
