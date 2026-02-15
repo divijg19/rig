@@ -90,6 +90,15 @@ jobs:
 
           go build -trimpath -buildvcs=false -ldflags "$LDFLAGS" -o "$STAGE_DIR/$BINARY_NAME" ./cmd/rig
 
+          if [ ! -f "$STAGE_DIR/$BINARY_NAME" ]; then
+            echo "error: expected built binary not found: $STAGE_DIR/$BINARY_NAME" >&2
+            exit 1
+          fi
+          if [ ! -s "$STAGE_DIR/$BINARY_NAME" ]; then
+            echo "error: built binary is empty: $STAGE_DIR/$BINARY_NAME" >&2
+            exit 1
+          fi
+
           if [ "$GOOS" = "windows" ]; then
             (
               cd "$STAGE_DIR"
@@ -99,11 +108,43 @@ jobs:
             tar -czf "$DIST_DIR/$ARCHIVE_NAME" -C "$STAGE_DIR" "$BINARY_NAME"
           fi
 
+          if [ ! -f "$DIST_DIR/$ARCHIVE_NAME" ]; then
+            echo "error: expected archive not found: $DIST_DIR/$ARCHIVE_NAME" >&2
+            echo "stage contents:" >&2
+            ls -lah "$STAGE_DIR" >&2 || true
+            echo "dist contents:" >&2
+            ls -lah "$DIST_DIR" >&2 || true
+            exit 1
+          fi
+          if [ ! -s "$DIST_DIR/$ARCHIVE_NAME" ]; then
+            echo "error: archive is empty: $DIST_DIR/$ARCHIVE_NAME" >&2
+            exit 1
+          fi
+
           (
             cd "$DIST_DIR"
             sha256sum "$ARCHIVE_NAME" > "$ARCHIVE_NAME.sha256"
+            sha256sum -c "$ARCHIVE_NAME.sha256"
           )
-          sha256sum -c "$DIST_DIR/$ARCHIVE_NAME.sha256"
+
+          if [ ! -f "$DIST_DIR/$ARCHIVE_NAME.sha256" ]; then
+            echo "error: checksum file not found: $DIST_DIR/$ARCHIVE_NAME.sha256" >&2
+            exit 1
+          fi
+
+      - name: Debug dist contents (build)
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "dist/ contents for ${{ matrix.goos }}/${{ matrix.goarch }}:"
+          ls -lah dist || true
+          echo "checksum files:"
+          for f in dist/*.sha256; do
+            [ -e "$f" ] || continue
+            echo "--- $f"
+            cat "$f"
+          done
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -126,6 +167,19 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+
+      - name: Debug dist contents (release)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "downloaded dist/ contents:"
+          ls -lah dist
+          echo "downloaded checksum files:"
+          for f in dist/*.sha256; do
+            [ -e "$f" ] || continue
+            echo "--- $f"
+            cat "$f"
+          done
 
       - name: Publish GitHub Release assets
         uses: softprops/action-gh-release@v2
