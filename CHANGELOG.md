@@ -4,6 +4,24 @@ All notable changes to this project are documented in this file.
 
 The format is based on Keep a Changelog, and this project aims to follow Semantic Versioning.
 
+## Quick Upgrade Notes
+
+### v0.4
+- Tool observability commands are available: `rig tools ls`, `rig tools path <name>`, `rig tools why <name>`, `rig tools doctor [name]`.
+- New invocation-name aliases are supported: `ril`, `rip`, and `riw`.
+- `rig doctor` now accepts an optional tool name and dispatches to tool diagnostics.
+- `rig upgrade` performs a checksum-verified binary self-update with an up-to-date short-circuit.
+
+### v0.3
+- `rig dev` is now a first-class command (alias: `rid`). Configure it via `[tasks.dev]` with `command` + `watch`.
+- Alias model is finalized: one binary with invocation-name dispatch. See `rig alias`.
+
+### v0.2
+- `rig run` (alias: `rir`) requires `rig.lock` for deterministic tool validation and execution.
+- `rig check` (alias: `ric`) verifies `rig.lock` presence and tool parity.
+- `rig status` reports `rig.lock` and `.rig/bin` parity state.
+- `rig sync` writes `rig.lock` (schema=0) and `.rig/manifest.lock` (hash cache) for deterministic tool resolution and fast parity checks.
+
 ## Documentation
 - Expanded command documentation for v0.4 command surface (`rig tools ls/path/why/doctor`, `rig doctor [name]`, `rig upgrade`).
 - Aligned installation and alias docs with invocation-name entrypoints (`ril`, `rip`, `riw`) and current installer behavior.

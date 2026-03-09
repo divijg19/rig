@@ -11,6 +11,7 @@
 .vscode/
 .idea/
 *.code-workspace
+Codebase.txt
 
 # OS
 .DS_Store
