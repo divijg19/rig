@@ -12,11 +12,20 @@
 
 ## Why Rig?
 
-- **One manifest:** `rig.toml` is the source of truth for project tasks, tools, and build intent.
-- **Project-local tooling:** installs pinned tools into `.rig/bin` to avoid global conflicts.
-- **Reproducible tooling:** `rig sync` writes `rig.lock` (deterministic, schema=0) and uses it to install and verify tools.
-- **Fast parity checks:** also writes `.rig/manifest.lock` (a hash cache) so commands can quickly detect drift.
-- **Ergonomic DX:** dry-runs, task listing, JSON output (where supported), and sensible `init` templates.
+- *One manifest:* `rig.toml` is the source of truth for project tasks, tools, and build intent.
+- *Project-local tooling:* installs pinned tools into `.rig/bin` to avoid global conflicts.
+- *Reproducible tooling:* `rig sync` writes `rig.lock` (deterministic, schema=0) and uses it to install and verify tools.
+- *Fast parity checks:* also writes `.rig/manifest.lock` (a hash cache) so commands can quickly detect drift.
+- *Ergonomic DX:* dry-runs, task listing, JSON output (where supported), and sensible `init` templates.
+
+## Core Features:
+
+- **⚡ Virtual Runtime (rig dev):** Native hot-reloading, environment variable injection, and instant feedback loops.
+- **🎯 Process Multiplexing:** Concurrently run your Backend (Go), Web (Templ/Tailwind), and Mobile (Flutter) in one terminal window.
+- **🔒 Hermetic Tooling:** rig manages non-Go tools too; they are version-locked in rig.lock and sandboxed per project. It downloads and version-locks tailwindcss, templ, and sqlc inside the project. No global version conflicts.
+- **📦 Cargo-like Management:** A single rig.toml acts as the source of truth for tasks (scripts), tools, and build profiles.
+- **🌉 Automated Pipelines:** Define "glue" tasks. rig watches files and triggers sqlc, swag, or codegen tools before your build runs.
+- **🚀 Production Supervisor (rig start):** In production, rig acts as PID 1; a lightweight process manager for your binaries that handles graceful shutdowns, signal trapping, log formatting and secrets for your binary.
 
 ---
 
@@ -28,43 +37,7 @@
 curl -fsSL https://raw.githubusercontent.com/divijg19/rig/main/install.sh | sh
 ```
 
-**Eventual official installer**
-```bash
-curl -fsSL https://rig.sh/install | sh
-```
-
-On macOS/Linux, the installer installs `rig` and also creates these optional symlink entrypoints next to it:
-
-- `rir` → `rig run`
-- `ric` → `rig check`
-- `rid` → `rig dev`
-- `ris` → `rig start`
-
-Additional entrypoints are supported by invocation name and can be created manually:
-
-- `ril` → `rig tools ls`
-- `rip` → `rig tools path`
-- `riw` → `rig tools why`
-
-On Windows, invoke `rig run`, `rig check`, `rig dev`, etc directly until a PowerShell installer exists.
-
-**Go install (single binary only)**
-```bash
-# Install the single main binary
-go install github.com/divijg19/rig/cmd/rig@latest
-```
-Ensure `$GOPATH/bin` is in your system's `PATH`.
-
-`go install` does not create aliases. If you want aliases, create symlinks manually:
-```bash
-ln -sf "$(command -v rig)" "$HOME/.local/bin/rir"
-ln -sf "$(command -v rig)" "$HOME/.local/bin/ric"
-ln -sf "$(command -v rig)" "$HOME/.local/bin/ril"
-ln -sf "$(command -v rig)" "$HOME/.local/bin/rip"
-ln -sf "$(command -v rig)" "$HOME/.local/bin/riw"
-ln -sf "$(command -v rig)" "$HOME/.local/bin/rid"
-ln -sf "$(command -v rig)" "$HOME/.local/bin/ris"
-```
+For complete installation options (`go install`, alias symlinks, Windows notes), see `docs/INSTALLATION.md`.
 
 ---
 
@@ -99,49 +72,27 @@ github.com/vektra/mockery/v2 = "v2.46.0"
 
 ---
 
-## Quick upgrade notes 
-### (v0.2) 
-
-- `rig run` (alias: rir) now requires `rig.lock` for deterministic tool validation and execution. List tasks set in rig.toml quickly with `rig run --list` or `rir --list` if you use aliases. Run `rig sync` to generate the lock file and install tools.
-- `rig check` (alias: `ric`) verifies `rig.lock` presence and tool parity. Use it in CI to ensure a clean state before running tasks.
-- `rig status` checks for `rig.lock` and `.rig/bin` parity and reports the current state of the project environment.
-- `rig sync` now writes `rig.lock` (schema=0) and `.rig/manifest.lock` (a hash cache) for deterministic tool resolution and fast parity checks.
-
-### (v0.3)
-
-- `rig dev` is now a first-class command (alias: `rid`). Configure it via `[tasks.dev]` with `command` + `watch`.
-- Alias model is finalized: one binary with invocation-name dispatch. See `rig alias`.
-
-### (v0.4)
-
-- Tool observability commands are available: `rig tools ls`, `rig tools path <name>`, `rig tools why <name>`, `rig tools doctor [name]`.
-- New invocation-name aliases are supported: `ril`, `rip`, and `riw`.
-- `rig doctor` now accepts an optional tool name and dispatches to tool diagnostics.
-- `rig upgrade` performs a checksum-verified binary self-update with an up-to-date short-circuit.
-
----
-
 ## Command Reference
 
 | Command | Description |
 | :--- | :--- |
 | **`rig init`** | Generate a `rig.toml` (interactive or flags). |
-| **`rig run <task>`** | Run a task from `[tasks]`. |
-| **`rig dev`** | Run the watcher-backed dev loop (alias: `rid`). |
+| **`rig run <task>`** | Run a task from `[tasks]`. (alias entrypoint: `rir`) |
+| **`rig dev`** | Run the watcher-backed dev loop (alias entrypoint: `rid`). |
 | **`rig status`** | Show current state (read-only). |
 | **`rig build`** | Compose and run `go build` using optional profiles. |
 | **`rig tools`** | Manage tools declared in `[tools]` (sync/check/outdated). |
-| **`rig tools ls`** | List locked tools in deterministic order (alias entrypoint: `ril`). |
-| **`rig tools path <name>`** | Print absolute path in `.rig/bin` with lock+checksum validation (alias entrypoint: `rip`). |
-| **`rig tools why <name>`** | Show requested/resolved/sha/path provenance for a tool (alias entrypoint: `riw`). |
-| **`rig tools doctor [name]`** | Diagnose tool presence, executable bit, and checksum parity. |
-| **`rig sync`** | Shortcut for `rig tools sync`. |
-| **`rig check`** | Verify `rig.lock` and `.rig/bin` tool parity (alias: `ric`). |
-| **`rig outdated`** | Shortcut for `rig tools outdated`. |
-| **`rig x`** | Run a tool ephemerally. |
+| **`rig ls`** | List locked tools in deterministic order. Shortcut for `rig tools ls` (alias entrypoint: `ril`). |
+| **`rig path <name>`** | Print absolute path in `.rig/bin` with lock+checksum validation. Shortcut for `rig tools path <name>` (alias entrypoint: `rip`). |
+| **`rig why <name>`** | Show requested/resolved/sha/path provenance for a tool. Shortcut for `rig tools why <name>` (alias entrypoint: `riw`). |
 | **`rig doctor`** | Verify local environment and toolchain sanity. |
+| **`rig doctor [name]`** | Diagnose tool presence, executable bit, and checksum parity. |
+| **`rig sync`** | Shortcut for `rig tools sync`. |
+| **`rig check`** | Verify `rig.lock` and `.rig/bin` tool parity (alias entrypoint: `ric`). |
+| **`rig outdated`** | Shortcut for `rig tools outdated`. |
+| **`rig x`** | Run a tool ephemerally. (alias entrypoint: `rix`) |
 | **`rig upgrade`** | Upgrade the `rig` binary with asset+SHA verification and safe replacement semantics. |
-| **`rig setup`** | Convenience installer for `[tools]` (similar to sync). |
+| **`rig setup`** | Convenience installer for `[tools]` (similar to sync). Shortcut for `rig tools setup`. |
 
 ---
 
@@ -157,9 +108,15 @@ github.com/vektra/mockery/v2 = "v2.46.0"
 
 ## Documentation
 
-- [docs/CONFIGURATION.md](docs/CONFIGURATION.md): `rig.toml` schema and behavior.
+- [docs/INSTALLATION.md](docs/INSTALLATION.md): installation methods, aliases, and platform notes.
+- [SECURITY.md](SECURITY.md): vulnerability reporting and security policy.
 - [docs/CLI.md](docs/CLI.md): CLI commands, flags, and workflows.
+- [docs/CONFIGURATION.md](docs/CONFIGURATION.md): `rig.toml` schema and behavior.
 - [docs/CHEATSHEET.md](docs/CHEATSHEET.md): quick reference.
+- [docs/PRODUCTION.md](docs/PRODUCTION.md): production-oriented guidance and operational notes.
+- [docs/GOLDEN_STACK.md](docs/GOLDEN_STACK.md): reference stack and example task layout.
+- [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md): project principles and design direction.
+- [docs/ROADMAP.md](docs/ROADMAP.md): planned features and release direction.
 - [examples/README.md](examples/README.md): copy-pasteable manifests.
 
 #### Bonus End-goals
