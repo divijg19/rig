@@ -1,6 +1,6 @@
 module github.com/divijg19/rig
 
-go 1.25.7
+go 1.25.9
 
 require (
 	github.com/creack/pty v1.1.24
